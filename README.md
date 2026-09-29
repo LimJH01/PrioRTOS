@@ -20,7 +20,7 @@
 * **`OBJ-03` Single Worst-Case Blocking Bound via IPCP**
 Immediate Priority Ceiling Protocol(IPCP)을 적용하여 임의의 태스크가 겪을 수 있는 최악 차단 시간($B_i$)을 단 1회의 최대 임계 구역($\max B_k$)으로 한정하며, 연쇄 차단(Chained Blocking) 및 상호 교착 상태(Deadlock)의 부재를 이론적으로 보장합니다.
 * **`OBJ-04` Design for High Verifiability & Bounded Formal Checking**
-* **결정론적 단일 제어 흐름:** 복잡한 중첩 삼항 연산자와 매크로 분기를 배제하고, 핵심 디스패치 루틴(`sched_select_next`)을 루프 없는 단일 분기($O(1)$)로 설계하여 제어 흐름 분석(CFG) 및 커버리지 테스팅이 용이한 구조를 유지합니다.
+* **결정론적 단일 제어 흐름:** 복잡한 중첩 삼항 연산자와 매크로 분기를 배제하고, 핵심 디스패치 루틴(`sched_select_next`)을 루프 없는 단일 분기($$O(1)$$)로 설계하여 제어 흐름 분석(CFG) 및 커버리지 테스팅이 용이한 구조를 유지합니다.
 * **CBMC 기반 핵심 불변식 검증:** 포화 모델 체킹 대신 SAT 기반 유계 모델 체커(CBMC)를 적용하여 `mutex.c`의 IPCP 자원 획득 시 우선순위 상한 불변식($P_{active} \le Ceiling$)과 동기화 무결성을 정형적으로 검증(Bounded Model Checking)합니다.
 * **단위 검증 목표:** `gcov` 기준 핵심 스케줄링 및 동기화 모듈에 대해 95% 이상의 구문(Statement) 및 분기(Branch) 커버리지를 검증합니다.
 
