@@ -54,13 +54,13 @@ typedef struct TCB{
 /* 커널 전역 상태 장부*/
 
 extern TCB_t g_tcbs[MAX_TASKS]; // 태스크 장부
-extern TCB_t *g_current_tcb; // 다음 차례의 태스크 주소
+extern TCB_t *g_current_tcb; // 현재 태스크 주소
 extern uint32_t g_ready_bitmap; // 비트 0-7 : 태스트 준비 여부 플래그
 
 //=========================================================================//
 /*O(1) 비트맵 스케줄러 매크로*/
 // 비트맵에서 가장 높은 우선순위를 1사이클 만에 추출
-#define SCHED_GET_HIGHEST_PRIO(bitmap) (31 - __builtin_clz(bitmap)) // 가종 높은 1 찾기
+#define SCHED_GET_HIGHEST_PRIO(bitmap) (31 - __builtin_clz(bitmap)) // 가장 높은 1 찾기
 
 // 특정 우선순위 비트 조작
 #define SCHED_SET_READY(prio) (g_ready_bitmap |=(1U << (prio))) // task on
