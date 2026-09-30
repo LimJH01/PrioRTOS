@@ -25,7 +25,7 @@ void uart_puts(const char *str){
 
 int main(void){
     uart_puts("\n===================================\n");
-    uart_puts("  Hello SlotRTOS Bare-metal Boot!  \n");
+    uart_puts("  Hello PrioRTOS Bare-metal Boot!  \n");
     uart_puts("  BSS Zero-Clear & SP Init OK.     \n");
     uart_puts("===================================\n\n");
 

@@ -6,7 +6,8 @@ CPU의 타이머 인터럽트 수신 스위치를 켜는 것 */
 void clint_timer_init(){
     uint64_t current_time = CLINT_MTIME;
     // 첫번째 알림을 미래로 보냄
-    // 아직 인터럽트 주소도 등록하기전에 인터럽트가 발생하는것을 막는 용도
+    /*아직 첫 번째 태스크와 OS 스케줄러 초기화가 끝나지도 않았는데 
+    부팅 0.00001초 만에 알람이 울려 인터럽트로 납치당하는 것을 방지하기 위함*/ 
     CLINT_MTIMECMP = current_time + TIMER_INTERVAL;
 
     /*CPU 내부의 32개 인터럽트 스위치 중
