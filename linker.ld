@@ -25,5 +25,8 @@ SECTIONS
         *(COMMON)
         . = ALIGN(4);
         __bss_end = .;
+        _stack_bottom = .;
+        . += 0x1000;
+        _staxk_top = 0;
     } > RAM
 }

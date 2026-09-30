@@ -3,7 +3,7 @@
 
 _start:
     # 1. sp 레지스터에 .bss의 g_system_stack 꼭대기 주입
-    la sp, g_system_stack + 2048
+    la sp, _stack_top
 
     # 2. .bss 영역 0 초기화
     la t0, __bss_start
