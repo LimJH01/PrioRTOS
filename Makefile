@@ -3,7 +3,7 @@ CC      := riscv64-unknown-elf-gcc
 OBJDUMP := riscv64-unknown-elf-objdump
 READELF := riscv64-unknown-elf-readelf
 
-CFLAGS  := -march=rv32i -mabi=ilp32 -mcmodel=medany -nostdlib -fno-builtin \
+CFLAGS  := -march=rv32i_zicsr -mabi=ilp32 -mcmodel=medany -nostdlib -fno-builtin \
            -Wall -Wextra -O0 -g \
            -Ikernel/include -Ibsp -Iapp
 
