@@ -2,7 +2,7 @@
 #include "uart.h"
 #include "clint.h"
 
-extern void trap_handler(void);
+extern void trap_entry(void);
 int main(void){
 
     uart_init();
@@ -13,7 +13,8 @@ int main(void){
     uart_puts("===================================\n\n");
 
     // trap_hander()의 주소를 인터럽트 발생시 처리할 주고 mtvec에 넣는다
-    asm volatile ("csrw mtvec, %0" :: "r"((uintptr_t)trap_handler));
+    // mtvec에 trap_entry의 주소를 등록하는 것
+    asm volatile ("csrw mtvec, %0" :: "r"((uintptr_t)trap_entry));
     clint_set_next_timer();
     // mie -> machine instruction enable, bit 7을 1로 나머지는 0
     // 7번 bit인 이유 -> timer interrupt 허용이기 때문
