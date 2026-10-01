@@ -6,7 +6,7 @@
 
 // 시스템 설정 상수
 #define MAX_TASKS  8
-#define IDEL_TASK_PRIORITY 0 // IDLE 태스크 우선순위는 최저
+#define IDLE_TASK_PRIORITY 0 // IDLE 태스크 우선순위는 최저
 #define MAX_PRIORITY  (MAX_TASKS-1)
 /*context 구조체
 RISC-V에 따라 context switching 시 저장해야할 레지스터들
