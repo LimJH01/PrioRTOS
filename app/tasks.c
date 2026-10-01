@@ -11,7 +11,7 @@ static STACK_ALIGNED uint32_t stack_task_a[TASK_STACK_WORDS];
 static STACK_ALIGNED uint32_t stack_task_b[TASK_STACK_WORDS];
 
 // mock task를 위한 nop 태스크 동작
-static void mock_dealy(volatile uint32_t count){
+static void mock_delay(volatile uint32_t count){
     while(count--){
         asm volatile ("nop");
     }
