@@ -8,27 +8,28 @@
 #define MAX_TASKS  8
 #define IDLE_TASK_PRIORITY 0 // IDLE 태스크 우선순위는 최저
 #define MAX_PRIORITY  (MAX_TASKS-1)
-/*context 구조체
-RISC-V에 따라 context switching 시 저장해야할 레지스터들
-총 13개의 레지스터
-*/
-typedef struct { 
-    uint32_t s0;    // x8: Frame Pointer / Saved Register 0
-    uint32_t s1;    // x9: Saved Register 1
-    uint32_t s2;    // x18
-    uint32_t s3;    // x19
-    uint32_t s4;    // x20
-    uint32_t s5;    // x21
-    uint32_t s6;    // x22
-    uint32_t s7;    // x23
-    uint32_t s8;    // x24
-    uint32_t s9;    // x25
-    uint32_t s10;   // x26
-    uint32_t s11;   // x27
-    uint32_t ra;    // x1 : Return Address 
-    uint32_t pad[3]; // 16 바이트 스택 정렬 맞춤용
+/* context 구조체
+ * - 원래: RISC-V 표준 C 호출 규약(Calling Convention)에 따라, 자발적 양보시 
+ *         Callee-saved 레지스터만 보존하면 되었기에 총 13개(s0~s11, ra) 레지스터로 설계되었음.
+ * - 변경: CLINT 타이머 인터럽트 기반 Preemptive Trap과 IPCP 스케줄링 환경에서는 
+ *         태스크 임의 지점에서 레지스터가 오염될 수 있고, mepc/mstatus 보존 및 16바이트 스택 정렬이 
+ *         필수적이기 때문에 총 32개(128바이트, 범용 30개 + mepc/mstatus) 풀 컨텍스트 프레임으로 바꿨음.
+ */
+typedef struct {
+    // 1. 범용 레지스터 30개 (zero 제외, sp는 TCB의 sp로 직접 관리)
+    uint32_t ra;
+    uint32_t gp;
+    uint32_t tp;
+    uint32_t t0, t1, t2;
+    uint32_t s0, s1;
+    uint32_t a0, a1, a2, a3, a4, a5, a6, a7;
+    uint32_t s2, s3, s4, s5, s6, s7, s8, s9, s10, s11;
+    uint32_t t3, t4, t5, t6;
 
-}TaskContext_t;
+    // 2. 인터럽트/트랩 복귀 제어용 특수 레지스터 2개
+    uint32_t mepc;    // 태스크 실행 복귀 PC 주소
+    uint32_t mstatus; // 머신 모드 인터럽트 제어 상태 (MPIE, MPP 등)
+} TaskContext_t; // 총 32개 * 4바이트 = 128바이트 (RISC-V 16바이트 스택 정렬 규약 완벽 만족)
 
 //=========================================================================//
 /* 태스크 상태 및 TCB */
