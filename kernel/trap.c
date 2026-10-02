@@ -15,5 +15,11 @@ void trap_handler(){
     if (mcause == 0x80000007){
         clint_set_next_timer();
         uart_putc('.');
+
+        sched_schedule();
+    }else{
+        while(1){
+            asm volatile ("wfi");
+        }
     }
 }
