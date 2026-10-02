@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "uart.h"
 #include "clint.h"
+#include "tasks.h"
+#include "prio_rtos.h"
 
 extern void trap_entry(void);
 int main(void){
@@ -25,6 +27,10 @@ int main(void){
     asm volatile("csrs mstatus, %0" :: "r"(1 << 3));
 
     uart_puts("== timer interrupt enabled ==\n");
+
+    tasks_init();
+
+    priortos_start();
 
     while (1) {
         // runtime execution
