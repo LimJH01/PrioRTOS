@@ -1,6 +1,9 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
 
+// O(1)에 top_prio를 찾기 위한 어셈블리 매크로
+#define SCHED_GET_HIGHEST_PRIO(bitmap) (31 - __builtin_clz(bitmap))
+
 // 태스크가 while(1)을 탈출해 실수로 리턴했을 때 잡기 위한 안전 덫
 static void task_exit_trap(void) {
     while (1) {
@@ -64,17 +67,25 @@ int task_create(uint32_t prio, void (*task_func)(void), uint32_t *stack, uint32_
 
 void priortos_start(void){
 
-    uint32_t top_prio;
-
-    for(int i = 7; i >= 0; i-- ){
-        if (g_ready_bitmap & (1U << i)){
-            top_prio = i;
-            break;
-        }
-    }
+    uint32_t top_prio = SCHED_GET_HIGHEST_PRIO(g_ready_bitmap);
     // []가 있으면 주소가 아닌 내용물, 따라서 &를 붙여야 한다.
     g_current_tcb = &g_tcbs[top_prio];
     g_current_tcb->state = TASK_STATE_RUNNING;
-    
+
     prio_context_first_switch(g_current_tcb);
+}
+
+
+void sched_schedule(){
+    uint32_t top_prio = SCHED_GET_HIGHEST_PRIO(g_ready_bitmap);
+
+    // 주소를 비교, (주소가 다르면 무조건 우선순위가 더 높음)
+    if(g_current_tcb != &g_tcbs[top_prio]){
+        if (g_current_tcb->state == TASK_STATE_RUNNING){
+            g_current_tcb->state = TASK_STATE_READY;
+        }
+    }
+    g_current_tcb = &g_tcbs[top_prio];
+    g_current_tcb->state = TASK_STATE_RUNNING
+
 }
