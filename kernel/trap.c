@@ -1,5 +1,6 @@
 #include "clint.h"
 #include "uart.h"
+#include "kernel_internal.h"
 
 // mepc 확인
 // mret 확인

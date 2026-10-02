@@ -29,7 +29,6 @@ int main(void){
     uart_puts("== timer interrupt enabled ==\n");
 
     tasks_init();
-
     priortos_start();
 
     while (1) {

@@ -1,6 +1,10 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
 
+TCB_t g_tcbs[MAX_TASKS];
+TCB_t *g_current_tcb = 0;
+uint32_t g_ready_bitmap = 0;
+
 // O(1)에 top_prio를 찾기 위한 어셈블리 매크로
 #define SCHED_GET_HIGHEST_PRIO(bitmap) (31 - __builtin_clz(bitmap))
 
@@ -28,7 +32,7 @@ int task_create(uint32_t prio, void (*task_func)(void), uint32_t *stack, uint32_
 
     // 2. 스택의 최상단(Top) 주소 계산
     // 배열 시작 주소(stack) + 크기(stack_size) = 스택의 가장 높은 끝 번지
-    uintptr_t stack_top = (uintptr_t)(stack + stack_size);
+    uintptr_t stack_top = ((uintptr_t)stack)+ stack_size;
 
     // 3. 16바이트 정렬 보정 (하위 4비트를 0으로 밀어서 버림)
     stack_top &= ~((uintptr_t)0xF);
@@ -84,8 +88,7 @@ void sched_schedule(){
         if (g_current_tcb->state == TASK_STATE_RUNNING){
             g_current_tcb->state = TASK_STATE_READY;
         }
+        g_current_tcb = &g_tcbs[top_prio];
+        g_current_tcb->state = TASK_STATE_RUNNING;
     }
-    g_current_tcb = &g_tcbs[top_prio];
-    g_current_tcb->state = TASK_STATE_RUNNING;
-
 }
