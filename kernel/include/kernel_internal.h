@@ -69,7 +69,6 @@ extern uint32_t g_ready_bitmap; // 비트 0-7 : 태스트 준비 여부 플래�
 
 //=========================================================================//
 /* 어셈블리 및 커널 내부 엔진 함수*/
-extern void prio_context_switch(TCB_t *prev, TCB_t *next);
 extern void prio_context_first_switch(TCB_t *next);
 
 //sched.c 내부 함수

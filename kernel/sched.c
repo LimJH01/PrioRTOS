@@ -86,6 +86,6 @@ void sched_schedule(){
         }
     }
     g_current_tcb = &g_tcbs[top_prio];
-    g_current_tcb->state = TASK_STATE_RUNNING
+    g_current_tcb->state = TASK_STATE_RUNNING;
 
 }

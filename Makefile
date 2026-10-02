@@ -3,27 +3,32 @@ CC      := riscv64-unknown-elf-gcc
 OBJDUMP := riscv64-unknown-elf-objdump
 READELF := riscv64-unknown-elf-readelf
 
-# 2. 빌드 디렉터리 정의 (플래그 참조보다 먼저 선언 필수)
+# 2. 빌드 디렉터리 정의
 BUILD_DIR := build
 OBJ_DIR   := $(BUILD_DIR)/obj
 
 # 3. 컴파일러 플래그
+# - __builtin_clz 인라인 치환을 위해 -fno-builtin 제거
+# - 베어메탈/자립형 환경 플래그(-ffreestanding, -nostdlib) 유지
 CFLAGS  := -march=rv32i_zicsr -mabi=ilp32 -mcmodel=medany \
-           -nostdlib -fno-builtin -ffreestanding \
+           -nostdlib -ffreestanding \
            -mpreferred-stack-boundary=4 \
            -ffunction-sections -fdata-sections \
            -Wall -Wextra -O0 -g \
            -MMD -MP \
            -Ikernel/include -Ibsp -Iapp
 
-# 4. 링커 플래그 ($(BUILD_DIR) 참조 정상화 및 -lgcc 명시)
+# 4. 링커 플래그 (-lgcc 유지하여 비트 연산 보조 라이브러리 링크)
 LDFLAGS := -T linker.ld -Wl,-Map=$(BUILD_DIR)/kernel.map -Wl,--gc-sections -lgcc
 
-# 5. 소스 파일 및 목적 파일 매핑
-SRCS_S := $(wildcard boot/*.S) $(wildcard kernel/*.S)
+# 5. 소스 파일 및 목적 파일 매핑 (.S 대소문자 모두 수집)
+SRCS_S := $(wildcard boot/*.S) $(wildcard boot/*.s) \
+          $(wildcard kernel/*.S) $(wildcard kernel/*.s)
 SRCS_C := $(wildcard kernel/*.c) $(wildcard bsp/*.c) $(wildcard app/*.c)
 
-OBJS := $(patsubst %.S, $(OBJ_DIR)/%.o, $(SRCS_S)) \
+# 목적 파일 변환 (.S와 .s 모두 $(OBJ_DIR)/%.o 로 치환)
+OBJS := $(patsubst %.S, $(OBJ_DIR)/%.o, $(filter %.S, $(SRCS_S))) \
+        $(patsubst %.s, $(OBJ_DIR)/%.o, $(filter %.s, $(SRCS_S))) \
         $(patsubst %.c, $(OBJ_DIR)/%.o, $(SRCS_C))
 
 # 헤더 의존성 파일 목록 (.d)
@@ -43,13 +48,17 @@ $(BUILD_DIR)/kernel.asm: $(BUILD_DIR)/kernel.elf
 	$(OBJDUMP) -d -S $< > $@
 	@echo "=== [DUMP SUCCESS] $@ ==="
 
-# 8. C 소스 파일 컴파일 룰 (폴더 자동 생성)
+# 8. C 소스 파일 컴파일 룰
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# 9. 어셈블리 소스 파일 컴파일 룰 (폴더 자동 생성)
+# 9. 어셈블리 소스 파일 컴파일 룰 (.S 및 .s 지원)
 $(OBJ_DIR)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.o: %.s
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -71,7 +80,7 @@ cbmc:
 trace:
 	@python3 verification/traceability/check_traceability.py
 
-# 생성된 헤더 의존성 파일 포함 (헤더 수정 시 자동 재컴파일)
+# 생성된 헤더 의존성 파일 포함
 -include $(DEPS)
 
 .PHONY: all run clean cbmc trace

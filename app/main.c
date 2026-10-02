@@ -29,6 +29,8 @@ int main(void){
     while (1) {
         // runtime execution
         asm volatile ("wfi");
+
+        
     }
     return 0;
 }
