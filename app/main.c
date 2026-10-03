@@ -23,7 +23,7 @@ int main(void){
     asm volatile("csrs mie, %0" :: "r"(1 << 7));
     // machine status, 전체 인터럽트 허용/차단 여부 결정
     // bit 3번은 mie 
-    
+
     // [주의] mstatus.MIE(전역 인터럽트)를 main()에서 직접 활성화 금지!
     // priortos_start() 호출 전에 인터럽트가 발생하면 g_current_tcb(NULL) 역참조로 커널 크래시 발생.
     // 전역 인터럽트는 첫 태스크 디스패치 시 prio_context_first_switch의 mret(0x1880, MPIE=1)을 통해 하드웨어가 자동 활성화함.
@@ -36,9 +36,7 @@ int main(void){
 
     while (1) {
         // runtime execution
-        asm volatile ("wfi");
-
-        
+        asm volatile ("wfi"); 
     }
     return 0;
 }

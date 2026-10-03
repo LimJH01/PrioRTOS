@@ -28,9 +28,9 @@ prio_context_first_switch:
     lw   sp, 0(a0)
 
     # 2. task_create()가 심어둔 CSR 초기값 복원
-    lw   t0, 120(sp)       # mstatus 초기값 (0x1880: MPIE=1, MPP=Machine Mode)
+    lw   t0, 124(sp)       # mstatus 초기값 (0x1880: MPIE=1, MPP=Machine Mode)
     csrw mstatus, t0
-    lw   t1, 124(sp)       # mepc 초기값 (태스크 함수 시작 주소)
+    lw   t1, 120(sp)       # mepc 초기값 (태스크 함수 시작 주소)
     csrw mepc, t1
 
     # 3. 가짜 스택에 사전 배치된 범용 레지스터 30개 복원
@@ -121,9 +121,9 @@ trap_entry:
 
     # 인터럽트 발생 당시의 하드웨어 CSR 상태 백업
     csrr t0, mstatus
-    sw   t0, 120(sp)
+    sw   t0, 124(sp)
     csrr t1, mepc
-    sw   t1, 124(sp)
+    sw   t1, 120(sp)
 
     # --------------------------------------------------------------------------
     # 2 g_current_tcb->sp에 현재 스택 포인터 동기화
@@ -148,9 +148,9 @@ trap_entry:
     # --------------------------------------------------------------------------
     # 5 태스크의 CSR 및 범용 레지스터 복원 후 mret으로 복귀
     # --------------------------------------------------------------------------
-    lw   t0, 120(sp)
+    lw   t0, 124(sp)
     csrw mstatus, t0
-    lw   t1, 124(sp)
+    lw   t1, 120(sp)
     csrw mepc, t1
 
     lw   ra,  0(sp)
