@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 // 사용자가 호출 가능한 커널 공개 API 목록
-int task_create(uint32_t prio, void (*task_func)(void), uint32_t *stack, uint32_t stack_size);
+int task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes);
 void priortos_start(void);
 void task_yield(void);
 

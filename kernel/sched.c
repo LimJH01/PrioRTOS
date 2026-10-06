@@ -15,7 +15,7 @@ static void task_exit_trap(void) {
     }
 }
 
-int task_create(uint32_t prio, void (*task_func)(void), uint32_t *stack, uint32_t stack_size) {
+int task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes) {
     // 1. 유효성 검증
     if (prio >= 8){
         return -1;
@@ -26,19 +26,26 @@ int task_create(uint32_t prio, void (*task_func)(void), uint32_t *stack, uint32_
     if (task_func == 0 || stack == 0){
         return -1;
     }
-    if (stack_size < 32){
+    if (stack_size_bytes < sizeof(TaskContext_t)){
         return -1;
     }
 
     // 2. 스택의 최상단(Top) 주소 계산
-    // 배열 시작 주소(stack) + 크기(stack_size) = 스택의 가장 높은 끝 번지
-    uintptr_t stack_top = ((uintptr_t)stack)+ stack_size;
+    // 배열 시작 주소에 바이트 단위 크기를 더해 스택의 끝 주소를 계산
+    uintptr_t stack_start = (uintptr_t)stack;
+    if (stack_size_bytes > UINTPTR_MAX - stack_start){
+        return -1;
+    }
+    uintptr_t stack_top = stack_start + stack_size_bytes;
 
     // 3. 16바이트 정렬 보정 (하위 4비트를 0으로 밀어서 버림)
     stack_top &= ~((uintptr_t)0xF);
 
     // 4. 가짜 스택 프레임(128바이트) 공간 확보
     // 높은 주소에서 128바이트만큼 밑으로 내려와 프레임의 시작 위치를 잡음
+    if (stack_top - stack_start < sizeof(TaskContext_t)){
+        return -1;
+    }
     TaskContext_t *ctx = (TaskContext_t *)(stack_top - sizeof(TaskContext_t));
 
     // 5. 프레임 전체를 0으로 초기화 (x1~x31 일반 레지스터 초기값)
@@ -62,6 +69,11 @@ int task_create(uint32_t prio, void (*task_func)(void), uint32_t *stack, uint32_
 
     // 7. 완성된 스택 포인터를 TCB에 기록
     g_tcbs[prio].sp = (uint32_t *)ctx;
+    g_tcbs[prio].priority = prio;
+    g_tcbs[prio].base_priority = prio;
+    g_tcbs[prio].state = TASK_STATE_READY;
+    g_tcbs[prio].stack_base = stack;
+    g_tcbs[prio].stack_size_bytes = stack_size_bytes;
 
     // 8. 스케줄러 레디 비트맵 활성화
     g_ready_bitmap |= (1U << prio);

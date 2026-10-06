@@ -46,8 +46,8 @@ typedef struct TCB{
     uint32_t priority; // 태스크 현재 우선순위 (0-7)
     uint32_t base_priority; // IPCP 에서 원래 우선순위 복원용
     TaskState_t state; // 태스크 상태
-    uint32_t *stack_base; // 스택 시작 주소
-    uint32_t stack_size; // 할당된 스택 크기
+    uint8_t *stack_base; // 스택 시작 주소
+    uint32_t stack_size_bytes; // 할당된 스택 크기(바이트)
 
 }TCB_t;
 
