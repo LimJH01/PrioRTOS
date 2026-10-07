@@ -73,5 +73,6 @@ extern void prio_context_first_switch(TCB_t *next);
 
 //sched.c 내부 함수
 void sched_schedule(void);
+void kernel_panic(const char *msg);
 
 #endif
