@@ -1,7 +1,7 @@
 #include "prio_rtos.h"
 #include "uart.h"
 
-void kernel_panic(const char *msg) {
+__attribute__((noreturn)) void kernel_panic(const char *msg) {
     // 1. 모든 인터럽트 비활성화 (추가 오작동 차단)
     asm volatile("csrci mstatus, 8"); // mstatus.MIE = 0
 

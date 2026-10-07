@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "stack_guard.h"
 
 // 시스템 설정 상수
 #define MAX_TASKS  8
@@ -70,6 +71,7 @@ extern uint32_t g_ready_bitmap; // 비트 0-7 : 태스트 준비 여부 플래�
 //=========================================================================//
 /* 어셈블리 및 커널 내부 엔진 함수*/
 extern void prio_context_first_switch(TCB_t *next);
+__attribute__((noreturn)) void stack_overflow_panic(void);
 
 //sched.c 내부 함수
 void sched_schedule(void);

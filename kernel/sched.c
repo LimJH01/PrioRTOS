@@ -1,5 +1,11 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
+#include <stddef.h>
+
+_Static_assert(sizeof(TaskContext_t) == STACK_TRAP_FRAME_SIZE,
+               "TaskContext_t must match the assembly trap frame size");
+_Static_assert(offsetof(TCB_t, stack_base) == TCB_STACK_BASE_OFFSET,
+               "TCB stack_base offset must match context.S");
 
 TCB_t g_tcbs[MAX_TASKS];
 TCB_t *g_current_tcb = 0;
@@ -15,6 +21,10 @@ static void task_exit_trap(void) {
     }
 }
 
+__attribute__((noreturn)) void stack_overflow_panic(void) {
+    kernel_panic("task stack overflow");
+}
+
 TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes) {
     // 1. 유효성 검증
     if (prio >= MAX_TASKS){
@@ -26,7 +36,7 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     if (task_func == 0 || stack == 0){
         return TASK_CREATE_ERR_NULL_PTR;
     }
-    if (stack_size_bytes < sizeof(TaskContext_t)){
+    if (stack_size_bytes < STACK_GUARD_SIZE + sizeof(TaskContext_t)){
         return TASK_CREATE_ERR_STACK_TOO_SMALL;
     }
 
@@ -41,12 +51,20 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     // 3. 16바이트 정렬 보정 (하위 4비트를 0으로 밀어서 버림)
     stack_top &= ~((uintptr_t)0xF);
 
-    // 4. 가짜 스택 프레임(128바이트) 공간 확보
+    // 4. 정렬된 guard 영역과 가짜 스택 프레임(128바이트) 공간 확보
     // 높은 주소에서 128바이트만큼 밑으로 내려와 프레임의 시작 위치를 잡음
-    if (stack_top < stack_start || stack_top - stack_start < sizeof(TaskContext_t)){
+    uintptr_t guard_start = (stack_start + 3U) & ~((uintptr_t)0x3U);
+    if (stack_top < guard_start ||
+        stack_top - guard_start < STACK_GUARD_SIZE + sizeof(TaskContext_t)){
         return TASK_CREATE_ERR_STACK_TOO_SMALL;
     }
     TaskContext_t *ctx = (TaskContext_t *)(stack_top - sizeof(TaskContext_t));
+
+    uint32_t *guard = (uint32_t *)guard_start;
+    guard[0] = STACK_GUARD_WORD_0;
+    guard[1] = STACK_GUARD_WORD_1;
+    guard[2] = STACK_GUARD_WORD_2;
+    guard[3] = STACK_GUARD_WORD_3;
 
     // 5. 프레임 전체를 0으로 초기화 (x1~x31 일반 레지스터 초기값)
     uint32_t *raw = (uint32_t *)ctx;

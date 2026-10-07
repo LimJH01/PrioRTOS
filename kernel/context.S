@@ -11,6 +11,8 @@
 #        스케줄러(sched_schedule) 판단에 따라 다음 TCB->sp로 sp를 교체하여 mret 복귀.
 # ==============================================================================
 
+    #include "stack_guard.h"
+
     .section .text
     .globl trap_entry
     .globl prio_context_first_switch
@@ -24,6 +26,13 @@
 # - 인자: a0 = 첫 번째로 실행할 태스크의 TCB 주소 (&g_tcbs[top_prio])
 # ------------------------------------------------------------------------------
 prio_context_first_switch:
+    # mscratch stores the lowest permitted incoming sp before a trap frame.
+    lw   t0, TCB_STACK_BASE_OFFSET(a0)
+    addi t0, t0, 3
+    andi t0, t0, -4
+    addi t0, t0, STACK_GUARD_SIZE + STACK_TRAP_FRAME_SIZE
+    csrw mscratch, t0
+
     # 1. TCB 구조체의 첫 번째 멤버인 sp를 읽어와 CPU의 sp로 교체
     lw   sp, 0(a0)
 
@@ -83,6 +92,11 @@ prio_context_first_switch:
 #     5 선택된 태스크의 128B 컨텍스트 복원(lw) 후 mret
 # ------------------------------------------------------------------------------
 trap_entry:
+    # Check frame headroom without modifying a task register.
+    csrrw t0, mscratch, t0
+    bltu sp, t0, .Lstack_overflow
+    csrrw t0, mscratch, t0
+
     # --------------------------------------------------------------------------
     # 1 현재 태스크 스택에 128바이트 풀 프레임 확보 및 레지스터 백업
     # --------------------------------------------------------------------------
@@ -125,6 +139,26 @@ trap_entry:
     csrr t1, mepc
     sw   t1, 120(sp)
 
+    # Check the task's bottom-of-stack canary after the frame is safely saved.
+    la   t0, g_current_tcb
+    lw   t0, 0(t0)
+    lw   t0, TCB_STACK_BASE_OFFSET(t0)
+    addi t0, t0, 3
+    andi t0, t0, -4
+
+    lw   t1, 0(t0)
+    li   t2, STACK_GUARD_WORD_0
+    bne  t1, t2, .Lstack_overflow
+    lw   t1, 4(t0)
+    li   t2, STACK_GUARD_WORD_1
+    bne  t1, t2, .Lstack_overflow
+    lw   t1, 8(t0)
+    li   t2, STACK_GUARD_WORD_2
+    bne  t1, t2, .Lstack_overflow
+    lw   t1, 12(t0)
+    li   t2, STACK_GUARD_WORD_3
+    bne  t1, t2, .Lstack_overflow
+
     # --------------------------------------------------------------------------
     # 2 g_current_tcb->sp에 현재 스택 포인터 동기화
     # --------------------------------------------------------------------------
@@ -136,6 +170,9 @@ trap_entry:
     # 3 C 언어 트랩 핸들러 호출 (틱 처리 및 스케줄러 실행)
     #    - trap_handler() 내부에서 g_current_tcb가 교체될 수 있음
     # --------------------------------------------------------------------------
+    # Run kernel C code on the dedicated system stack, not the task stack.
+    la   sp, _stack_top
+    andi sp, sp, -16
     call trap_handler
 
     # --------------------------------------------------------------------------
@@ -143,6 +180,14 @@ trap_entry:
     # --------------------------------------------------------------------------
     la   t0, g_current_tcb
     lw   t1, 0(t0)          # t1 = 스케줄러가 결정한 태스크의 TCB
+
+    # Update the trap-frame limit for the task about to resume.
+    lw   t0, TCB_STACK_BASE_OFFSET(t1)
+    addi t0, t0, 3
+    andi t0, t0, -4
+    addi t0, t0, STACK_GUARD_SIZE + STACK_TRAP_FRAME_SIZE
+    csrw mscratch, t0
+
     lw   sp, 0(t1)          # CPU의 sp를 해당 태스크의 스택 주소로 교체
 
     # --------------------------------------------------------------------------
@@ -187,3 +232,11 @@ trap_entry:
     addi sp, sp, 128
 
     mret
+
+.Lstack_overflow:
+    # Do not call C on a task stack that may already be exhausted.
+    la   sp, _stack_top
+    call stack_overflow_panic
+1:
+    wfi
+    j    1b

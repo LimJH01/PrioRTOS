@@ -22,8 +22,9 @@ SECTIONS
         . = ALIGN(4);
         __bss_start = .;
         *(.bss .bss.*)
+        *(.sbss .sbss.*)
         *(COMMON)
-        . = ALIGN(4);
+        . = ALIGN(16);
         __bss_end = .;
         _stack_bottom = .;
         . += 0x1000;
