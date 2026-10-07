@@ -1,10 +1,31 @@
 #include <clint.h>
 
+uint64_t clint_get_mtime(void){
+    uint32_t high;
+    uint32_t low;
+    uint32_t high_again;
+
+    do {
+        high = CLINT_MTIME_HIGH;
+        low = CLINT_MTIME_LOW;
+        high_again = CLINT_MTIME_HIGH;
+    } while (high != high_again);
+
+    return ((uint64_t)high << 32) | low;
+}
+
+void clint_set_mtimecmp(uint64_t compare_value){
+    // Prevent a transient compare match while updating the 64-bit register on RV32.
+    CLINT_MTIMECMP_LOW = UINT32_MAX;
+    CLINT_MTIMECMP_HIGH = (uint32_t)(compare_value >> 32);
+    CLINT_MTIMECMP_LOW = (uint32_t)compare_value;
+}
+
 // 부팅시 단 한번만 실행됨
 /* RTOS가 시작될 때 첫 번째 타이머 인터럽트가 발생할 최초의 기준 시각을 설정하고, 
 CPU의 타이머 인터럽트 수신 스위치를 켜는 것 */
-void clint_timer_init(){
-    uint64_t current_time = clint_get_mtime;
+void clint_timer_init(void){
+    uint64_t current_time = clint_get_mtime();
     // 첫번째 알림을 미래로 보냄
     /*아직 첫 번째 태스크와 OS 스케줄러 초기화가 끝나지도 않았는데 
     부팅 0.00001초 만에 알람이 울려 인터럽트로 납치당하는 것을 방지하기 위함*/ 
@@ -20,7 +41,7 @@ void clint_timer_init(){
 
 /* 매 1ms마다 인터럽트 핸들러 내부에서 실행
 알람이 울려서 timer_isr로 들어왔을 때, 알람을 끄고 다음 1ms 주기를 예약하는 것 */
-void clint_set_next_timer(){
+void clint_set_next_timer(void){
     // 현재 설정된 mtimecmp를 읽어서 더하는 대신, 
     // 현재 하드웨어 시각 기준으로 안전하게 다음 주기를 더함
     uint64_t next_time = clint_get_mtime() + TIMER_INTERVAL;
