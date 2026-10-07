@@ -9,6 +9,13 @@
 
 ---
 
+# 프로젝트 문서
+
+- [요구사항 초안](docs/requirements.md): 목표 범위, 요구사항 ID, 검증 기준 및 현재 구현 기준선
+- [설계 결정 기록](docs/design-decisions.md): 확정이 필요한 플랫폼·시간·IPCP·오류 정책
+
+문서에 `제안` 또는 `미결정`으로 표시된 내용은 합의 전까지 확정된 제품 요구사항이 아닙니다. 아래 아키텍처 설명의 목표/예시와 현재 구현 상태도 구분해서 확인하세요.
+
 ## 1. 시스템 엔지니어링 목표 (Engineering Objectives)
 
 본 커널은 항공·방산 임베디드 제어기(Flight Control System, Missile Actuator System) 탑재를 전제로 하며, 다음 5대 공학적 목표를 최상위 불변식(Top-Level Invariants)으로 설정합니다. FreeRTOS의 한계를 개선하여 IPCP, RMS, 제로 레이턴시 디스패칭을 탑재한 Hard RTOS 마이크로커널을 지향합니다.
