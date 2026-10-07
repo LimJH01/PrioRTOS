@@ -1,4 +1,4 @@
-#include "kernel_internal.h"
+#include "prio_rtos.h"
 #include "uart.h"
 
 void kernel_panic(const char *msg) {

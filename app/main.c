@@ -23,7 +23,11 @@ int main(void){
 
     uart_puts("== timer interrupt enabled ==\n");
 
-    tasks_init();
+    TaskCreateResult_t task_result = tasks_init();
+    if (task_result != TASK_CREATE_OK){
+        kernel_panic("task registration failed");
+    }
+
     priortos_start();
 
     while (1) {

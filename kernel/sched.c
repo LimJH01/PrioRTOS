@@ -15,26 +15,26 @@ static void task_exit_trap(void) {
     }
 }
 
-int task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes) {
+TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes) {
     // 1. 유효성 검증
-    if (prio >= 8){
-        return -1;
+    if (prio >= MAX_TASKS){
+        return TASK_CREATE_ERR_INVALID_PRIO;
     }
     if (g_ready_bitmap & (1U << prio)){
-        return -1;
+        return TASK_CREATE_ERR_PRIO_IN_USE;
     }
     if (task_func == 0 || stack == 0){
-        return -1;
+        return TASK_CREATE_ERR_NULL_PTR;
     }
     if (stack_size_bytes < sizeof(TaskContext_t)){
-        return -1;
+        return TASK_CREATE_ERR_STACK_TOO_SMALL;
     }
 
     // 2. 스택의 최상단(Top) 주소 계산
     // 배열 시작 주소에 바이트 단위 크기를 더해 스택의 끝 주소를 계산
     uintptr_t stack_start = (uintptr_t)stack;
     if (stack_size_bytes > UINTPTR_MAX - stack_start){
-        return -1;
+        return TASK_CREATE_ERR_ADDRESS_OVERFLOW;
     }
     uintptr_t stack_top = stack_start + stack_size_bytes;
 
@@ -43,8 +43,8 @@ int task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t
 
     // 4. 가짜 스택 프레임(128바이트) 공간 확보
     // 높은 주소에서 128바이트만큼 밑으로 내려와 프레임의 시작 위치를 잡음
-    if (stack_top - stack_start < sizeof(TaskContext_t)){
-        return -1;
+    if (stack_top < stack_start || stack_top - stack_start < sizeof(TaskContext_t)){
+        return TASK_CREATE_ERR_STACK_TOO_SMALL;
     }
     TaskContext_t *ctx = (TaskContext_t *)(stack_top - sizeof(TaskContext_t));
 
@@ -78,10 +78,13 @@ int task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t
     // 8. 스케줄러 레디 비트맵 활성화
     g_ready_bitmap |= (1U << prio);
 
-    return 0;
+    return TASK_CREATE_OK;
 }
 
 void priortos_start(void){
+    if (g_ready_bitmap == 0){
+        kernel_panic("scheduler started without ready tasks");
+    }
 
     uint32_t top_prio = SCHED_GET_HIGHEST_PRIO(g_ready_bitmap);
     // []가 있으면 주소가 아닌 내용물, 따라서 &를 붙여야 한다.
@@ -93,6 +96,10 @@ void priortos_start(void){
 
 
 void sched_schedule(){
+    if (g_ready_bitmap == 0){
+        kernel_panic("scheduler has no ready tasks");
+    }
+
     uint32_t top_prio = SCHED_GET_HIGHEST_PRIO(g_ready_bitmap);
 
     // 주소를 비교, (주소가 다르면 무조건 우선순위가 더 높음)

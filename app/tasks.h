@@ -2,6 +2,8 @@
 #ifndef TASKS_H
 #define TASKS_H
 
-void tasks_init(void);
+#include "prio_rtos.h"
+
+TaskCreateResult_t tasks_init(void);
 
 #endif

@@ -31,8 +31,12 @@ void task_b(void){
     }
 }
 
-void tasks_init(){
+TaskCreateResult_t tasks_init(void){
     // 인수- 우선순위, 함수 주소, 스택주소, 스택 크기를 받음
-    task_create(1, task_a, stack_task_a, TASK_STACK_SIZE_BYTES);
-    task_create(2, task_b, stack_task_b, TASK_STACK_SIZE_BYTES);
+    TaskCreateResult_t result = task_create(1, task_a, stack_task_a, TASK_STACK_SIZE_BYTES);
+    if (result != TASK_CREATE_OK){
+        return result;
+    }
+
+    return task_create(2, task_b, stack_task_b, TASK_STACK_SIZE_BYTES);
 }
