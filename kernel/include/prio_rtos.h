@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 // 사용자가 호출 가능한 커널 공개 API 목록
+void trap_init(void);
 int task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes);
 void priortos_start(void);
 void task_yield(void);

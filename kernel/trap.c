@@ -2,6 +2,12 @@
 #include "uart.h"
 #include "kernel_internal.h"
 
+extern void trap_entry(void);
+
+void trap_init(void){
+    asm volatile ("csrw mtvec, %0" :: "r"((uintptr_t)trap_entry));
+}
+
 // mepc 확인
 // mret 확인
 // __attribute__((interrupt("machine")))

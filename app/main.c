@@ -4,7 +4,6 @@
 #include "tasks.h"
 #include "prio_rtos.h"
 
-extern void trap_entry(void);
 int main(void){
 
     uart_init();
@@ -14,9 +13,7 @@ int main(void){
     uart_puts("  BSS Zero-Clear & SP Init OK.     \n");
     uart_puts("===================================\n\n");
 
-    // trap_hander()의 주소를 인터럽트 발생시 처리할 주고 mtvec에 넣는다
-    // mtvec에 trap_entry의 주소를 등록하는 것
-    asm volatile ("csrw mtvec, %0" :: "r"((uintptr_t)trap_entry));
+    trap_init();
     clint_timer_init();
 
     // [주의] mstatus.MIE(전역 인터럽트)를 main()에서 직접 활성화 금지!
