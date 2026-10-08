@@ -24,6 +24,10 @@ void trap_handler(){
         uart_putc('.');
 
         sched_schedule();
+    }else if (mcause == 11U){
+        TaskContext_t *context = (TaskContext_t *)g_current_tcb->sp;
+        context->mepc += 4U;
+        sched_schedule();
     }else{
         while(1){
             asm volatile ("wfi");

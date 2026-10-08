@@ -57,24 +57,31 @@ PrioRTOS/
 │   └── uart.h                UART API
 ├── kernel/
 │   ├── include/
-│   │   ├── prio_rtos.h       공개 API; mutex 함수는 선언만 있음
+│   │   ├── prio_rtos.h       공개 task/semaphore API; mutex 함수는 선언만 있음
 │   │   ├── kernel_internal.h TCB, 상태, ready bitmap, 내부 선언
 │   │   └── stack_guard.h     가드/트랩 프레임 상수
 │   ├── sched.c
 │   │   ├── task_create()     TCB/초기 문맥/guard 생성, ready bit 설정
 │   │   ├── priortos_start()  최고 ready 우선순위 선택 -> 최초 문맥 전환
 │   │   ├── sched_schedule()  최고 ready 우선순위 선택 및 현재 TCB 갱신
+│   │   ├── task_yield()      ecall을 통한 공통 재스케줄 요청
+│   │   ├── sched_block_current() BLOCKED 전환 후 ecall로 문맥 전환 요청
+│   │   ├── sched_wake_task() BLOCKED -> READY 및 ready bit 복구
 │   │   ├── stack_overflow_panic() -> kernel_panic()
 │   │   └── task_exit_trap()  태스크 함수가 반환할 경우 WFI 루프
+│   ├── semaphore.c
+│   │   ├── semaphore_init() 초기 카운트/대기 bitmap 설정
+│   │   ├── semaphore_wait() 카운트 소비 또는 현재 태스크 block
+│   │   └── semaphore_signal() 대기자 wake 또는 카운트 증가
 │   ├── trap.c
 │   │   ├── trap_init()       mtvec에 trap_entry 등록
-│   │   └── trap_handler()    timer interrupt -> timer 재설정 -> sched_schedule()
+│   │   └── trap_handler()    timer interrupt 또는 ecall -> sched_schedule()
 │   ├── context.S
 │   │   ├── prio_context_first_switch  최초 TCB 문맥 복원 -> mret
 │   │   └── trap_entry                 프레임 저장/가드 검사/핸들러/복원
 │   ├── panic.c
 │   │   └── kernel_panic()    인터럽트 차단 -> UART 진단 -> WFI
-│   └── mutex.c               비어 있음; mutex API 구현 없음
+│   └── mutex.c               비어 있음; IPCP mutex API 구현 없음
 ├── docs/
 │   ├── requirements.md       요구사항 및 상태 기준
 │   ├── design-decisions.md   미결정 설계 선택
@@ -112,7 +119,7 @@ _start [구현]
 ### 타이머 인터럽트 및 문맥 전환
 
 ```text
-하드웨어 timer interrupt
+하드웨어 timer interrupt 또는 task API의 ecall
 └── trap_entry [context.S]
     ├── 스택 여유 공간 검사
     ├── 전체 태스크 문맥 저장
@@ -125,10 +132,29 @@ _start [구현]
     │   │   │   └── clint_set_mtimecmp
     │   │   ├── uart_putc('.')
     │   │   └── sched_schedule [구현]
-    │   └── 그 외 원인은 WFI 루프 [부분: panic/error 경로와 미연결]
+    │   ├── mcause가 machine ecall이면
+    │   │   ├── 현재 trap frame의 mepc를 4 증가
+    │   │   └── sched_schedule [구현]
+    │   └── 지원하지 않는 원인은 WFI 루프
     ├── 선택된 TCB의 sp로 전환 및 문맥 복원
     └── mret -> 선택 태스크로 복귀
 ```
+
+### 세마포어를 이용한 A/B 교대
+
+```text
+task_a <-> semaphore_wait(sem_a_turn)
+       -> A를 TASK_OUTPUT_BURST_SIZE회 연속 출력 -> semaphore_signal(sem_b_turn)
+task_b <-> semaphore_wait(sem_b_turn)
+       -> B를 TASK_OUTPUT_BURST_SIZE회 연속 출력 -> semaphore_signal(sem_a_turn)
+
+semaphore_wait/signal
+└── ready bitmap 및 TCB 상태 갱신
+    └── ecall -> trap_entry -> trap_handler -> sched_schedule
+        └── 선택 태스크의 문맥 복원 및 실행
+```
+
+세마포어는 실행 순서를 동기화하며, IPCP mutex와는 별도 기능이다.
 
 ### 오류 경로
 
@@ -151,11 +177,8 @@ trap_entry stack guard/headroom 실패
 mutex_lock() / mutex_unlock() [선언만]
 └── mutex.c [비어 있음]
 
-task_yield() [선언만]
-└── trap 또는 sched_schedule로 연결되지 않음
-
-TASK_STATE_BLOCKED
-└── 상태 상수만 있음; block/wakeup API와 ready bit 제거·복구 흐름 없음
+semaphore_wait() / semaphore_signal()
+└── 현재 A/B 태스크에서 사용; semaphore는 IPCP mutex와 별개
 
 idle task (priority 0)
 └── 정책 문서에는 있으나 등록/실행 코드 없음
@@ -166,20 +189,19 @@ CBMC 검증 및 추적성 검사
 
 ## 다음 구현 순서 제안
 
-IPCP부터 작성하기보다 태스크 상태와 스케줄러의 기반 불변식을 먼저 닫는 순서가 안전하다.
-뮤텍스 대기/해제를 정확히 구현하려면 READY/BLOCKED 전이와 문맥 전환의 계약이 먼저 정해져야 한다.
+기본 READY/BLOCKED 전이와 문맥 전환은 ecall 및 semaphore 경로로 연결했다.
+다음에는 모든 응용 태스크가 BLOCKED가 되는 경우와 자동 검증을 보완한다.
 
 | 순서 | 다음 작업 | 구현 범위 | 완료 기준 |
 |---|---|---|---|
-| 1 | 스케줄러 상태 불변식과 idle 동작 | 슬롯 0의 idle 태스크 정책, `UNUSED/READY/RUNNING/BLOCKED` 전이, ready bitmap 갱신을 하나의 일관된 계약으로 정리한다. `sched_schedule()`의 빈 ready set 처리도 idle 정책과 맞춘다. | idle만 남는 경우와 우선순위 전환에서 현재 TCB, 상태, bitmap이 항상 일치한다. |
-| 2 | `task_yield` 및 block/wakeup 경로 | 선언된 `task_yield()`를 구현하고, block/unblock 시 READY 상태와 bitmap을 원자적으로 갱신한다. 타이머 대기를 추가한다면 timebase/tick 단위를 먼저 결정한다. | 두 개 이상의 태스크가 양보/대기/깨우기 후 정확한 상태로 전환되고, 불법 전이는 명시적으로 거부된다. |
-| 3 | 스케줄러 단위 테스트와 트랩 통합 테스트 | 최고 우선순위 선택, 동률 정책, 비트 설정/해제, 초기 디스패치, 반복 선점 테스트를 작성한다. | 요구사항의 scheduler/trap 케이스가 자동화되어 통과한다. |
-| 4 | IPCP 정책 결정 후 mutex 구현 | ceiling 산정, 중첩 규칙, 비소유자 해제, 재귀 획득, 즉시 불가할 때 block/error 동작을 결정하고 API/상태를 구현한다. | 정상/오류/경계 사례 테스트 및 ceiling/소유권 불변식 검증이 통과한다. |
-| 5 | CBMC 및 시간 측정 | 검증 하네스를 먼저 작성하고, 실제 툴체인/ISA에서 생성 코드와 타이머 주기를 확인한다. 이후 대상 기반 WCET/지연 측정을 수행한다. | 검증 범위와 가정, 측정 환경, 결과가 재현 가능하게 기록된다. |
+| 1 | idle 동작과 빈 ready set | 슬롯 0 idle 태스크를 등록하고 `sched_schedule()`의 빈 ready set 처리를 정의한다. | 모든 응용 태스크가 BLOCKED여도 커널이 panic하지 않고 idle로 실행된다. |
+| 2 | 스케줄러/세마포어 테스트 | 최고 우선순위 선택, semaphore count/handoff, block/wakeup, ecall/timer 통합 테스트를 작성한다. | 두 태스크 교대, 우선순위 대기자 선택, 오류 입력의 반환값과 상태 불변식이 자동 검증된다. |
+| 3 | IPCP 정책 결정 후 mutex 구현 | ceiling 산정, 중첩 규칙, 비소유자 해제, 재귀 획득, 즉시 불가할 때 block/error 동작을 결정하고 API/상태를 구현한다. | 정상/오류/경계 사례 테스트 및 ceiling/소유권 불변식 검증이 통과한다. |
+| 4 | CBMC 및 시간 측정 | 검증 하네스를 먼저 작성하고, 실제 툴체인/ISA에서 생성 코드와 타이머 주기를 확인한다. 이후 대상 기반 WCET/지연 측정을 수행한다. | 검증 범위와 가정, 측정 환경, 결과가 재현 가능하게 기록된다. |
 
 ### 권장 바로 다음 작업
 
-**1번: 스케줄러 상태 불변식과 idle 동작**부터 시작하는 것을 권한다. 먼저 다음 규칙을 요구사항으로 고정한 뒤 구현하면 된다.
+**1번: idle 동작과 빈 ready set 처리**를 구현한다. 다음으로 현재 A/B 세마포어 흐름을 자동 검증한다.
 
 1. `g_ready_bitmap`의 각 비트가 어떤 태스크 상태를 의미하는지 명확히 한다.
 2. BLOCKED/UNUSED 태스크는 ready bitmap에서 제외하고, READY/RUNNING의 포함 여부를 하나로 정한다.

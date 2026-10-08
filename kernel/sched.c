@@ -129,3 +129,50 @@ void sched_schedule(){
         g_current_tcb->state = TASK_STATE_RUNNING;
     }
 }
+
+uint32_t sched_irq_save(void) {
+    uint32_t saved_mstatus;
+    uint32_t mie_mask = 1U << 3;
+    asm volatile ("csrrc %0, mstatus, %1"
+                  : "=r"(saved_mstatus)
+                  : "r"(mie_mask)
+                  : "memory");
+    return saved_mstatus;
+}
+
+void sched_irq_restore(uint32_t saved_mstatus) {
+    if (saved_mstatus & (1U << 3)) {
+        asm volatile ("csrs mstatus, %0"
+                      :: "r"(1U << 3)
+                      : "memory");
+    }
+}
+
+bool sched_block_current(uint32_t saved_mstatus) {
+    TCB_t *self = g_current_tcb;
+    if (self == NULL || self->state != TASK_STATE_RUNNING) {
+        sched_irq_restore(saved_mstatus);
+        return false;
+    }
+
+    self->state = TASK_STATE_BLOCKED;
+    g_ready_bitmap &= ~(1U << self->priority);
+
+    sched_irq_restore(saved_mstatus);
+    asm volatile ("ecall" ::: "memory");
+    return true;
+}
+
+bool sched_wake_task(uint32_t priority) {
+    if (priority >= MAX_TASKS || g_tcbs[priority].state != TASK_STATE_BLOCKED) {
+        return false;
+    }
+
+    g_tcbs[priority].state = TASK_STATE_READY;
+    g_ready_bitmap |= (1U << priority);
+    return true;
+}
+
+void task_yield(void) {
+    asm volatile ("ecall" ::: "memory");
+}

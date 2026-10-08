@@ -104,10 +104,11 @@ prio_rtos/
 │
 ├── kernel/                           # [마이크로커널 코어 (약 800라인 엄수)]
 │   ├── include/                      
-│   │   ├── prio_rtos.h               # [Public API] task_create, task_yield, mutex_lock/unlock
+│   │   ├── prio_rtos.h               # [Public API] task, semaphore, mutex API
 │   │   └── kernel_internal.h         # [Private Core] TCB_t, ready_bitmap, CLZ 매크로, LLR 매핑 태그
 │   ├── context.S                     # 문맥 교환 어셈블리 (Caller/Callee 레지스터 보존, SP 전환)
 │   ├── sched.c                       # O(1) 결정론적 스케줄러 (__builtin_clz 비트맵 탐색)
+│   ├── semaphore.c                   # 태스크 간 신호 전달 및 BLOCKED/READY 처리
 │   ├── mutex.c                       # IPCP (Immediate Priority Ceiling Protocol) 자원 락
 │   └── trap.c                        # RISC-V M-mode 타이머 인터럽트(CLINT) 및 시스템 콜 디스패처
 │
