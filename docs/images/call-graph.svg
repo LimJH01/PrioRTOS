@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-labelledby="title description">
+  <title id="title">PrioRTOS 현재 구현 콜 그래프</title>
+  <desc id="description">부팅과 최초 태스크 진입, 타이머 인터럽트 문맥 전환, 스택 오류 처리의 함수 호출 흐름을 나타낸 그림.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#526581"/>
+    </marker>
+    <style>
+      text { font-family: "Noto Sans CJK KR", "Malgun Gothic", sans-serif; fill: #172033; }
+      .title { font-size: 30px; font-weight: 700; }
+      .subtitle { font-size: 15px; fill: #526581; }
+      .lane-title { font-size: 20px; font-weight: 700; }
+      .node-title { font-size: 16px; font-weight: 700; }
+      .node-sub { font-size: 13px; fill: #526581; }
+      .small { font-size: 13px; fill: #526581; }
+      .lane { fill: #f7f9fc; stroke: #d9e1ec; stroke-width: 2; }
+      .node { fill: #ffffff; stroke: #70819a; stroke-width: 2; rx: 12; }
+      .entry { fill: #e9f3ff; stroke: #3775b8; }
+      .kernel { fill: #edf8f2; stroke: #38845f; }
+      .bsp { fill: #fff6e6; stroke: #b98124; }
+      .task { fill: #f2edff; stroke: #7554b3; }
+      .error { fill: #fff0ef; stroke: #c34d47; }
+      .edge { fill: none; stroke: #526581; stroke-width: 2.4; marker-end: url(#arrow); }
+      .edge-error { fill: none; stroke: #c34d47; stroke-width: 2.4; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1080" fill="#ffffff"/>
+  <text x="60" y="54" class="title">PrioRTOS 현재 구현 콜 그래프</text>
+  <text x="60" y="82" class="subtitle">실제 코드에 연결된 함수 호출만 표시 · 호출이 아닌 실행 전환은 점선으로 구분</text>
+
+  <rect x="50" y="110" width="1500" height="420" rx="18" class="lane"/>
+  <text x="78" y="148" class="lane-title">① 부팅 및 최초 태스크 실행</text>
+
+  <rect x="85" y="245" width="180" height="72" class="node entry"/>
+  <text x="175" y="274" text-anchor="middle" class="node-title">_start</text>
+  <text x="175" y="296" text-anchor="middle" class="node-sub">boot/startup.S</text>
+
+  <rect x="330" y="245" width="180" height="72" class="node entry"/>
+  <text x="420" y="274" text-anchor="middle" class="node-title">main()</text>
+  <text x="420" y="296" text-anchor="middle" class="node-sub">app/main.c</text>
+  <path d="M265 281 H330" class="edge"/>
+
+  <rect x="590" y="170" width="195" height="66" class="node bsp"/>
+  <text x="687" y="197" text-anchor="middle" class="node-title">uart_init()</text>
+  <text x="687" y="218" text-anchor="middle" class="node-sub">UART 초기화</text>
+
+  <rect x="590" y="262" width="195" height="66" class="node"/>
+  <text x="687" y="289" text-anchor="middle" class="node-title">trap_init()</text>
+  <text x="687" y="310" text-anchor="middle" class="node-sub">mtvec ← trap_entry</text>
+
+  <rect x="590" y="354" width="195" height="66" class="node bsp"/>
+  <text x="687" y="381" text-anchor="middle" class="node-title">clint_timer_init()</text>
+  <text x="687" y="402" text-anchor="middle" class="node-sub">초기 알람 설정 및 MTIE</text>
+
+  <path d="M510 266 H550 V203 H590" class="edge"/>
+  <path d="M510 281 H590" class="edge"/>
+  <path d="M510 296 H550 V387 H590" class="edge"/>
+
+  <rect x="845" y="354" width="195" height="66" class="node"/>
+  <text x="942" y="381" text-anchor="middle" class="node-title">tasks_init()</text>
+  <text x="942" y="402" text-anchor="middle" class="node-sub">app/tasks.c</text>
+  <path d="M510 307 H540 V446 H820 V387 H845" class="edge"/>
+
+  <rect x="1090" y="354" width="195" height="66" class="node kernel"/>
+  <text x="1187" y="381" text-anchor="middle" class="node-title">task_create() × 2</text>
+  <text x="1187" y="402" text-anchor="middle" class="node-sub">우선순위 1, 2 등록</text>
+  <path d="M1040 387 H1090" class="edge"/>
+
+  <rect x="845" y="235" width="195" height="66" class="node kernel"/>
+  <text x="942" y="262" text-anchor="middle" class="node-title">priortos_start()</text>
+  <text x="942" y="283" text-anchor="middle" class="node-sub">최고 ready 우선순위 선택</text>
+  <path d="M510 252 H545 V215 H815 V268 H845" class="edge"/>
+
+  <rect x="1090" y="235" width="195" height="66" class="node kernel"/>
+  <text x="1187" y="262" text-anchor="middle" class="node-title">prio_context_first_switch</text>
+  <text x="1187" y="283" text-anchor="middle" class="node-sub">context.S · 복원 후 mret</text>
+  <path d="M1040 268 H1090" class="edge"/>
+
+  <rect x="1340" y="235" width="175" height="66" class="node task"/>
+  <text x="1427" y="262" text-anchor="middle" class="node-title">task_a() / task_b()</text>
+  <text x="1427" y="283" text-anchor="middle" class="node-sub">태스크 진입점</text>
+  <path d="M1285 268 H1340" class="edge"/>
+
+  <rect x="1340" y="354" width="175" height="66" class="node task"/>
+  <text x="1427" y="381" text-anchor="middle" class="node-title">mock_delay()</text>
+  <text x="1427" y="402" text-anchor="middle" class="node-sub">태스크 busy loop</text>
+  <path d="M1427 301 V354" class="edge"/>
+
+  <rect x="1090" y="440" width="195" height="58" class="node bsp"/>
+  <text x="1187" y="465" text-anchor="middle" class="node-title">uart_puts() → uart_putc()</text>
+  <text x="1187" y="485" text-anchor="middle" class="node-sub">부팅 로그 출력</text>
+  <path d="M510 306 H555 V469 H1090" class="edge"/>
+  <path d="M1427 301 V430 H1305 V469 H1285" class="edge"/>
+
+  <rect x="50" y="555" width="1500" height="465" rx="18" class="lane"/>
+  <text x="78" y="593" class="lane-title">② 타이머 인터럽트, 스케줄링 및 오류 처리</text>
+
+  <rect x="85" y="690" width="185" height="70" class="node bsp"/>
+  <text x="177" y="719" text-anchor="middle" class="node-title">CLINT timer IRQ</text>
+  <text x="177" y="741" text-anchor="middle" class="node-sub">mtimecmp 만료</text>
+
+  <rect x="340" y="690" width="205" height="70" class="node kernel"/>
+  <text x="442" y="719" text-anchor="middle" class="node-title">trap_entry</text>
+  <text x="442" y="741" text-anchor="middle" class="node-sub">context.S · 저장/guard 검사</text>
+  <path d="M270 725 H340" class="edge"/>
+
+  <rect x="620" y="690" width="205" height="70" class="node kernel"/>
+  <text x="722" y="719" text-anchor="middle" class="node-title">trap_handler()</text>
+  <text x="722" y="741" text-anchor="middle" class="node-sub">timer 원인 판별</text>
+  <path d="M545 725 H620" class="edge"/>
+
+  <rect x="900" y="635" width="225" height="70" class="node bsp"/>
+  <text x="1012" y="664" text-anchor="middle" class="node-title">clint_set_next_timer()</text>
+  <text x="1012" y="686" text-anchor="middle" class="node-sub">get_mtime → set_mtimecmp</text>
+  <path d="M825 710 H860 V670 H900" class="edge"/>
+
+  <rect x="900" y="735" width="225" height="70" class="node bsp"/>
+  <text x="1012" y="764" text-anchor="middle" class="node-title">uart_putc('.')</text>
+  <text x="1012" y="786" text-anchor="middle" class="node-sub">현재 tick 출력</text>
+  <path d="M825 725 H900" class="edge"/>
+
+  <rect x="900" y="835" width="225" height="70" class="node kernel"/>
+  <text x="1012" y="864" text-anchor="middle" class="node-title">sched_schedule()</text>
+  <text x="1012" y="886" text-anchor="middle" class="node-sub">ready bitmap에서 선택</text>
+  <path d="M825 740 H860 V870 H900" class="edge"/>
+
+  <rect x="1210" y="735" width="245" height="70" class="node kernel"/>
+  <text x="1332" y="764" text-anchor="middle" class="node-title">문맥 복원 및 mret</text>
+  <text x="1332" y="786" text-anchor="middle" class="node-sub">선택된 TCB의 태스크로 복귀</text>
+  <path d="M1125 870 H1165 V770 H1210" class="edge"/>
+  <path d="M1332 735 V625 H1427 V301" class="edge"/>
+  <text x="1439" y="618" text-anchor="middle" class="small">복귀</text>
+
+  <rect x="340" y="875" width="205" height="70" class="node error"/>
+  <text x="442" y="904" text-anchor="middle" class="node-title">stack_overflow_panic()</text>
+  <text x="442" y="926" text-anchor="middle" class="node-sub">가드/여유 공간 오류</text>
+  <path d="M442 760 V875" class="edge-error"/>
+
+  <rect x="620" y="875" width="205" height="70" class="node error"/>
+  <text x="722" y="904" text-anchor="middle" class="node-title">kernel_panic()</text>
+  <text x="722" y="926" text-anchor="middle" class="node-sub">IRQ 차단 · 진단 · WFI</text>
+  <path d="M545 910 H620" class="edge-error"/>
+
+  <rect x="900" y="925" width="225" height="58" class="node bsp"/>
+  <text x="1012" y="950" text-anchor="middle" class="node-title">uart_puts() → uart_putc()</text>
+  <text x="1012" y="970" text-anchor="middle" class="node-sub">panic 메시지</text>
+  <path d="M825 910 H860 V954 H900" class="edge-error"/>
+
+  <rect x="1170" y="855" width="345" height="100" rx="12" fill="#ffffff" stroke="#c8d2df" stroke-width="1.5"/>
+  <text x="1192" y="883" class="node-title">그림 읽는 법</text>
+  <path d="M1192 906 H1250" class="edge"/>
+  <text x="1262" y="911" class="small">일반 함수 호출 / 제어 흐름</text>
+  <path d="M1192 932 H1250" class="edge-error"/>
+  <text x="1262" y="937" class="small">스택 오류 처리 경로</text>
+</svg>
