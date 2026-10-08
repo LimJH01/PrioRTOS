@@ -147,16 +147,16 @@ trap_entry:
     andi t0, t0, -4
 
     lw   t1, 0(t0)
-    li   t2, STACK_GUARD_WORD_0
+    li   t2, STACK_GUARD_WORD
     bne  t1, t2, .Lstack_overflow
     lw   t1, 4(t0)
-    li   t2, STACK_GUARD_WORD_1
+    li   t2, STACK_GUARD_WORD
     bne  t1, t2, .Lstack_overflow
     lw   t1, 8(t0)
-    li   t2, STACK_GUARD_WORD_2
+    li   t2, STACK_GUARD_WORD
     bne  t1, t2, .Lstack_overflow
     lw   t1, 12(t0)
-    li   t2, STACK_GUARD_WORD_3
+    li   t2, STACK_GUARD_WORD
     bne  t1, t2, .Lstack_overflow
 
     # --------------------------------------------------------------------------

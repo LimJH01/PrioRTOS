@@ -61,10 +61,10 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     TaskContext_t *ctx = (TaskContext_t *)(stack_top - sizeof(TaskContext_t));
 
     uint32_t *guard = (uint32_t *)guard_start;
-    guard[0] = STACK_GUARD_WORD_0;
-    guard[1] = STACK_GUARD_WORD_1;
-    guard[2] = STACK_GUARD_WORD_2;
-    guard[3] = STACK_GUARD_WORD_3;
+    guard[0] = STACK_GUARD_WORD;
+    guard[1] = STACK_GUARD_WORD;
+    guard[2] = STACK_GUARD_WORD;
+    guard[3] = STACK_GUARD_WORD;
 
     // 5. 프레임 전체를 0으로 초기화 (x1~x31 일반 레지스터 초기값)
     uint32_t *raw = (uint32_t *)ctx;
