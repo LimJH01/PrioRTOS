@@ -39,8 +39,8 @@ void clint_timer_init(void){
     asm volatile("csrw mie, %0" :: "r"(mie));
 }
 
-/* 매 1ms마다 인터럽트 핸들러 내부에서 실행
-알람이 울려서 timer_isr로 들어왔을 때, 알람을 끄고 다음 1ms 주기를 예약하는 것 */
+/* 매 1s마다 인터럽트 핸들러 내부에서 실행
+알람이 울려서 timer_isr로 들어왔을 때, 알람을 끄고 다음 1s 주기를 예약하는 것 */
 void clint_set_next_timer(void){
     // 현재 설정된 mtimecmp를 읽어서 더하는 대신, 
     // 현재 하드웨어 시각 기준으로 안전하게 다음 주기를 더함

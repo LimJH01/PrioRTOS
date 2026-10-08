@@ -3,8 +3,8 @@
 
 # PrioRTOS Architecture Specification
 
-> **Deterministic, Single-Cycle Bitmap-Scheduled Hard RTOS for Mission-Critical RISC-V Systems**
-> *Targeted for Flight Control Systems & Missile Actuators under Strict Determinism and IPCP Guarantee.*
+> **PrioRTOS: a fixed-priority, bitmap-scheduled RISC-V RTOS project**
+> *Design direction: static tasks, no same-priority round-robin, and IPCP.*
 
 
 ---
@@ -15,6 +15,8 @@
 - [설계 결정 기록](docs/design-decisions.md): 확정이 필요한 플랫폼·시간·IPCP·오류 정책
 
 문서에 `제안` 또는 `미결정`으로 표시된 내용은 합의 전까지 확정된 제품 요구사항이 아닙니다. 아래 아키텍처 설명의 목표/예시와 현재 구현 상태도 구분해서 확인하세요.
+
+> **구현 상태 안내:** 이 README의 후속 아키텍처 설명과 비교표에는 목표 설계 및 예시가 포함되어 있으며, 현재 동작하거나 검증된 기능을 모두 나타내지는 않습니다. 현재 목표 정책과 구현 기준선은 [요구사항 초안](docs/requirements.md), 미결정 선택은 [설계 결정 기록](docs/design-decisions.md)을 기준으로 합니다. 특히 단일 사이클/CLZ, IPCP, WCET, 인증 관련 문구는 구현·측정·검증 결과가 확보되기 전까지 보장으로 해석하지 마세요.
 
 ## 1. 시스템 엔지니어링 목표 (Engineering Objectives)
 
