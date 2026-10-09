@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "PrioRTOS RV32",
+            "compilerPath": "/usr/bin/riscv64-unknown-elf-gcc",
+            "compilerArgs": [
+                "-march=rv32i_zicsr",
+                "-mabi=ilp32",
+                "-mcmodel=medany",
+                "-ffreestanding"
+            ],
+            "includePath": [
+                "${workspaceFolder}/kernel/include",
+                "${workspaceFolder}/bsp",
+                "${workspaceFolder}/app"
+            ],
+            "defines": [],
+            "cStandard": "gnu17"
+        }
+    ],
+    "version": 4
+}
