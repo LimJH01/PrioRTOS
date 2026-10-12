@@ -38,7 +38,7 @@
 | [tasks.c](../app/tasks.c) | `sem_a_turn` 초기값 1, `sem_b_turn` 초기값 0으로 설정했다. A는 A 차례를 기다린 뒤 A를 출력하고 B를 깨우며, B도 반대로 동작한다. |
 | [README.md](../README.md), [implementation-map.md](./implementation-map.md) | 새 세마포어 파일과 태스크 전환 흐름을 문서에 반영했다. |
 
-기존 [mutex.c](../kernel/mutex.c)는 이번 변경에서 구현하지 않았다. IPCP mutex와 세마포어는 별도 기능이다.
+`mutex.c`는 고정 ID basic mutex를 제공한다. 경합 태스크 차단, 재귀 lock/비소유 unlock 오류, unlock 시 대기자에게 소유권 handoff를 처리한다. 이는 IPCP 구현이 아니며, priority ceiling/boost와 정적 자원 사용자 검증은 아직 없다. 세마포어와 mutex는 별도 기능이다.
 
 ## A/B 교대가 되는 이유
 
@@ -82,7 +82,7 @@ QEMU 실행은 기능 확인이지 실기기 timing/WCET 검증은 아니다.
 
 1. **Idle task가 없다.** 모든 응용 태스크가 동시에 BLOCKED가 되면 ready bitmap이 0이 되어 현재 스케줄러가 panic한다. 이 A/B 데모에서는 하나의 토큰이 항상 진행 중이므로 정상 흐름에서 두 태스크가 동시에 기다리지는 않는다.
 2. **`task_yield()`는 교대 API가 아니다.** 현재 태스크를 계속 READY로 두고 ecall을 요청한다. 고정 우선순위 정책에서는 그 태스크가 다시 선택될 수 있다.
-3. **세마포어는 IPCP mutex가 아니다.** 자원 소유권, priority ceiling, 상속/복원 같은 IPCP 규칙은 구현하지 않았다.
+3. **Basic mutex는 IPCP가 아니다.** 자원 소유권과 대기자 handoff는 있지만, priority ceiling/boost와 IPCP의 deadlock/blocking 보장은 구현하지 않았다.
 4. **자동 테스트 및 정형 검증은 아직 없다.** 현재 검증은 빌드와 QEMU 출력 확인에 한정된다.
 5. **A/B 태스크 함수는 데모 코드다.** 제품 사용 전에는 오류 정책, 동시성 경계, idle 동작 및 trap 오류 처리를 별도로 검증해야 한다.
 
@@ -90,4 +90,4 @@ QEMU 실행은 기능 확인이지 실기기 timing/WCET 검증은 아니다.
 
 1. 슬롯 0에 idle task를 추가하고 ready bitmap이 비었을 때 idle로 전환한다.
 2. 호스트 단위 테스트 또는 QEMU 테스트로 semaphore count, block/wakeup, 잘못된 호출을 검증한다.
-3. 별도 설계 결정 후 IPCP mutex를 구현한다. 세마포어 데모를 mutex 구현으로 간주하지 않는다.
+3. 별도 설계 결정 후 basic mutex에 IPCP의 자원 설정 및 유효 우선순위 관리를 추가한다. 세마포어와 basic mutex를 IPCP 구현으로 간주하지 않는다.

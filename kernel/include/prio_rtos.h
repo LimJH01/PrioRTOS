@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+#define MAX_MUTEXES 8U
+
 typedef enum {
     TASK_CREATE_OK = 0,
     TASK_CREATE_ERR_INVALID_PRIO = -1,
@@ -26,6 +28,15 @@ typedef enum {
     SEMAPHORE_ERR_COUNT_OVERFLOW = -4
 } SemaphoreResult_t;
 
+typedef enum {
+    MUTEX_OK = 0,
+    MUTEX_ERR_INVALID_ID = -1,
+    MUTEX_ERR_NOT_OWNER = -3,
+    MUTEX_ERR_RECURSIVE = -4,
+    MUTEX_ERR_INVALID_CONTEXT = -5,
+    MUTEX_ERR_INVALID_WAITER = -6
+} MutexResult_t;
+
 // 사용자가 호출 가능한 커널 공개 API 목록
 void trap_init(void);
 __attribute__((noreturn)) void kernel_panic(const char *msg);
@@ -36,8 +47,8 @@ SemaphoreResult_t semaphore_init(Semaphore_t *sem, uint32_t initial_count);
 SemaphoreResult_t semaphore_wait(Semaphore_t *sem);
 SemaphoreResult_t semaphore_signal(Semaphore_t *sem);
 
-// IPCP 뮤텍스 API (나중에 사용)
-int  mutex_lock(uint32_t mutex_id);
-int  mutex_unlock(uint32_t mutex_id);
+// Basic mutex IDs range from 0 to MAX_MUTEXES-1; no runtime initialization is needed.
+MutexResult_t mutex_lock(uint32_t mutex_id);
+MutexResult_t mutex_unlock(uint32_t mutex_id);
 
 #endif

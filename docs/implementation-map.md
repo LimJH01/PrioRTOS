@@ -57,7 +57,7 @@ PrioRTOS/
 │   └── uart.h                UART API
 ├── kernel/
 │   ├── include/
-│   │   ├── prio_rtos.h       공개 task/semaphore API; mutex 함수는 선언만 있음
+│   │   ├── prio_rtos.h       공개 task/semaphore/basic mutex API
 │   │   ├── kernel_internal.h TCB, 상태, ready bitmap, 내부 선언
 │   │   └── stack_guard.h     가드/트랩 프레임 상수
 │   ├── sched.c
@@ -81,7 +81,7 @@ PrioRTOS/
 │   │   └── trap_entry                 프레임 저장/가드 검사/핸들러/복원
 │   ├── panic.c
 │   │   └── kernel_panic()    인터럽트 차단 -> UART 진단 -> WFI
-│   └── mutex.c               비어 있음; IPCP mutex API 구현 없음
+│   └── mutex.c               고정 ID basic mutex; block/wakeup 및 소유권 handoff (IPCP 미구현)
 ├── docs/
 │   ├── requirements.md       요구사항 및 상태 기준
 │   ├── design-decisions.md   미결정 설계 선택
@@ -174,8 +174,9 @@ trap_entry stack guard/headroom 실패
 ## 현재 구현 경계와 연결되지 않은 경로
 
 ```text
-mutex_lock() / mutex_unlock() [선언만]
-└── mutex.c [비어 있음]
+mutex_lock() / mutex_unlock() [구현]
+└── static mutex table -> contending task block -> unlock handoff
+    (priority ceiling/boost, configured resource-user validation은 미구현)
 
 semaphore_wait() / semaphore_signal()
 └── 현재 A/B 태스크에서 사용; semaphore는 IPCP mutex와 별개
@@ -196,7 +197,7 @@ CBMC 검증 및 추적성 검사
 |---|---|---|---|
 | 1 | idle 동작과 빈 ready set | 슬롯 0 idle 태스크를 등록하고 `sched_schedule()`의 빈 ready set 처리를 정의한다. | 모든 응용 태스크가 BLOCKED여도 커널이 panic하지 않고 idle로 실행된다. |
 | 2 | 스케줄러/세마포어 테스트 | 최고 우선순위 선택, semaphore count/handoff, block/wakeup, ecall/timer 통합 테스트를 작성한다. | 두 태스크 교대, 우선순위 대기자 선택, 오류 입력의 반환값과 상태 불변식이 자동 검증된다. |
-| 3 | IPCP 정책 결정 후 mutex 구현 | ceiling 산정, 중첩 규칙, 비소유자 해제, 재귀 획득, 즉시 불가할 때 block/error 동작을 결정하고 API/상태를 구현한다. | 정상/오류/경계 사례 테스트 및 ceiling/소유권 불변식 검증이 통과한다. |
+| 3 | IPCP 정책 결정 및 확장 | basic mutex 위에 ceiling 산정, 사용 태스크 검증, 유효 우선순위 갱신 규칙을 결정하고 필요한 scheduler/TCB 변경을 구현한다. | 승인된 IPCP 규칙을 구현하고 우선순위/소유권 불변식을 검증한다. |
 | 4 | CBMC 및 시간 측정 | 검증 하네스를 먼저 작성하고, 실제 툴체인/ISA에서 생성 코드와 타이머 주기를 확인한다. 이후 대상 기반 WCET/지연 측정을 수행한다. | 검증 범위와 가정, 측정 환경, 결과가 재현 가능하게 기록된다. |
 
 ### 권장 바로 다음 작업
