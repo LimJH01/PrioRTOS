@@ -1,11 +1,15 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
 #include <stddef.h>
+#define STACK_ALIGNED __attribute__((aligned(16)))
 
 _Static_assert(sizeof(TaskContext_t) == STACK_TRAP_FRAME_SIZE,
                "TaskContext_t must match the assembly trap frame size");
 _Static_assert(offsetof(TCB_t, stack_base) == TCB_STACK_BASE_OFFSET,
                "TCB stack_base offset must match context.S");
+
+#define IDLE_STACK_SIZE_BYTES 1024U
+static STACK_ALIGNED uint8_t idle_stack[IDLE_STACK_SIZE_BYTES];
 
 TCB_t g_tcbs[MAX_TASKS];
 TCB_t *g_current_tcb = 0;
@@ -99,7 +103,21 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     return TASK_CREATE_OK;
 }
 
+void idle_task(void){
+    while (1){
+        asm volatile ("wfi");
+    }
+}
+
 void priortos_start(void){
+
+    TaskCreateResult_t result = 
+    task_create(IDLE_TASK_PRIORITY, idle_task, idle_stack, sizeof(idle_stack));
+
+    if (result =! TASK_CREATE_OK){
+        kernel_panic("scheduler started without ready tasks");
+
+    }
     if (g_ready_bitmap == 0){
         kernel_panic("scheduler started without ready tasks");
     }
