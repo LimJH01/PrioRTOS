@@ -114,7 +114,7 @@ void priortos_start(void){
     TaskCreateResult_t result = 
     task_create(IDLE_TASK_PRIORITY, idle_task, idle_stack, sizeof(idle_stack));
 
-    if (result =! TASK_CREATE_OK){
+    if (result != TASK_CREATE_OK){
         kernel_panic("scheduler started without ready tasks");
 
     }
