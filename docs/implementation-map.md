@@ -81,7 +81,7 @@ PrioRTOS/
 │   │   └── trap_entry                 프레임 저장/가드 검사/핸들러/복원
 │   ├── panic.c
 │   │   └── kernel_panic()    인터럽트 차단 -> UART 진단 -> WFI
-│   └── mutex.c               고정 ID basic mutex; block/wakeup 및 소유권 handoff (IPCP 미구현)
+│   └── mutex.c               고정 크기 풀의 런타임 basic mutex; block/wakeup 및 소유권 handoff (IPCP 미구현)
 ├── docs/
 │   ├── requirements.md       요구사항 및 상태 기준
 │   ├── design-decisions.md   미결정 설계 선택

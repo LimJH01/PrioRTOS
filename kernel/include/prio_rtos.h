@@ -31,10 +31,13 @@ typedef enum {
 typedef enum {
     MUTEX_OK = 0,
     MUTEX_ERR_INVALID_ID = -1,
+    MUTEX_ERR_INVALID_ARGUMENT = -2,
     MUTEX_ERR_NOT_OWNER = -3,
     MUTEX_ERR_RECURSIVE = -4,
     MUTEX_ERR_INVALID_CONTEXT = -5,
-    MUTEX_ERR_INVALID_WAITER = -6
+    MUTEX_ERR_INVALID_WAITER = -6,
+    MUTEX_ERR_NOT_CREATED = -7,
+    MUTEX_ERR_NO_FREE_SLOT = -8
 } MutexResult_t;
 
 // 사용자가 호출 가능한 커널 공개 API 목록
@@ -47,7 +50,10 @@ SemaphoreResult_t semaphore_init(Semaphore_t *sem, uint32_t initial_count);
 SemaphoreResult_t semaphore_wait(Semaphore_t *sem);
 SemaphoreResult_t semaphore_signal(Semaphore_t *sem);
 
-// Basic mutex IDs range from 0 to MAX_MUTEXES-1; no runtime initialization is needed.
+// Allocate one mutex from the fixed-capacity kernel pool and return its ID.
+// The returned ID can be shared by every task that protects the same resource.
+// Allocated mutexes remain reserved for the system lifetime.
+MutexResult_t mutex_create(uint32_t *mutex_id_out);
 MutexResult_t mutex_lock(uint32_t mutex_id);
 MutexResult_t mutex_unlock(uint32_t mutex_id);
 

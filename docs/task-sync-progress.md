@@ -38,7 +38,31 @@
 | [tasks.c](../app/tasks.c) | `sem_a_turn` 초기값 1, `sem_b_turn` 초기값 0으로 설정했다. A는 A 차례를 기다린 뒤 A를 출력하고 B를 깨우며, B도 반대로 동작한다. |
 | [README.md](../README.md), [implementation-map.md](./implementation-map.md) | 새 세마포어 파일과 태스크 전환 흐름을 문서에 반영했다. |
 
-`mutex.c`는 고정 ID basic mutex를 제공한다. 경합 태스크 차단, 재귀 lock/비소유 unlock 오류, unlock 시 대기자에게 소유권 handoff를 처리한다. 이는 IPCP 구현이 아니며, priority ceiling/boost와 정적 자원 사용자 검증은 아직 없다. 세마포어와 mutex는 별도 기능이다.
+`mutex.c`는 고정 크기 커널 풀에서 `mutex_create()`로 런타임에 생성하는 basic mutex를 제공한다. 생성된 ID를 공유 자원에 연결해 여러 태스크가 같은 mutex를 사용한다. 풀 용량은 `MAX_MUTEXES`로 제한되며, 경합 태스크 차단, 재귀 lock/비소유 unlock 오류, unlock 시 대기자에게 소유권 handoff를 처리한다. 이는 IPCP 구현이 아니며, priority ceiling/boost와 정적 자원 사용자 검증은 아직 없다. 세마포어와 mutex는 별도 기능이다.
+
+`mutex_create()`는 태스크 초기화 코드나 태스크 문맥에서 호출할 수 있으며, 인터럽트 비활성 구간에서 빈 슬롯을 할당한다. 생성된 mutex가 다 소진되면 `MUTEX_ERR_NO_FREE_SLOT`을 반환한다. 현재 해제 API는 없어 생성된 슬롯은 시스템 수명 동안 점유된다.
+
+예를 들어 초기화 코드에서 한 번 생성한 ID를 공유 자원 사용자들이 함께 사용한다.
+
+```c
+static uint32_t uart_mutex_id;
+
+void resources_init(void) {
+    if (mutex_create(&uart_mutex_id) != MUTEX_OK) {
+        kernel_panic("mutex creation failed");
+    }
+}
+
+void write_uart_from_task(void) {
+    if (mutex_lock(uart_mutex_id) != MUTEX_OK) {
+        kernel_panic("mutex lock failed");
+    }
+    uart_putc('A');
+    if (mutex_unlock(uart_mutex_id) != MUTEX_OK) {
+        kernel_panic("mutex unlock failed");
+    }
+}
+```
 
 ## A/B 교대가 되는 이유
 

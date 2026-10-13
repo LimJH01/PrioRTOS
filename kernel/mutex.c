@@ -6,6 +6,7 @@ _Static_assert(MAX_MUTEXES <= MAX_TASKS,
                "mutex waiter bitmap must fit the task bitmap");
 
 typedef struct {
+    bool created;
     bool locked;
     uint32_t owner_slot;
     uint32_t waiters;
@@ -28,19 +29,47 @@ static bool current_task_slot(uint32_t *slot_out) {
     return false;
 }
 
+MutexResult_t mutex_create(uint32_t *mutex_id_out) {
+    if (mutex_id_out == NULL) {
+        return MUTEX_ERR_INVALID_ARGUMENT;
+    }
+
+    uint32_t saved_mstatus = sched_irq_save();
+    for (uint32_t mutex_id = 0; mutex_id < MAX_MUTEXES; ++mutex_id) {
+        MutexState_t *mutex = &mutexes[mutex_id];
+        if (!mutex->created) {
+            mutex->locked = false;
+            mutex->owner_slot = 0U;
+            mutex->waiters = 0U;
+            mutex->created = true;
+            *mutex_id_out = mutex_id;
+            sched_irq_restore(saved_mstatus);
+            return MUTEX_OK;
+        }
+    }
+
+    sched_irq_restore(saved_mstatus);
+    return MUTEX_ERR_NO_FREE_SLOT;
+}
+
 MutexResult_t mutex_lock(uint32_t mutex_id) {
     if (mutex_id >= MAX_MUTEXES) {
         return MUTEX_ERR_INVALID_ID;
     }
 
     uint32_t saved_mstatus = sched_irq_save();
+    MutexState_t *mutex = &mutexes[mutex_id];
+    if (!mutex->created) {
+        sched_irq_restore(saved_mstatus);
+        return MUTEX_ERR_NOT_CREATED;
+    }
+
     uint32_t slot;
     if (!current_task_slot(&slot)) {
         sched_irq_restore(saved_mstatus);
         return MUTEX_ERR_INVALID_CONTEXT;
     }
 
-    MutexState_t *mutex = &mutexes[mutex_id];
     if (!mutex->locked) {
         mutex->locked = true;
         mutex->owner_slot = slot;
@@ -82,13 +111,18 @@ MutexResult_t mutex_unlock(uint32_t mutex_id) {
     }
 
     uint32_t saved_mstatus = sched_irq_save();
+    MutexState_t *mutex = &mutexes[mutex_id];
+    if (!mutex->created) {
+        sched_irq_restore(saved_mstatus);
+        return MUTEX_ERR_NOT_CREATED;
+    }
+
     uint32_t slot;
     if (!current_task_slot(&slot)) {
         sched_irq_restore(saved_mstatus);
         return MUTEX_ERR_INVALID_CONTEXT;
     }
 
-    MutexState_t *mutex = &mutexes[mutex_id];
     if (!mutex->locked || mutex->owner_slot != slot) {
         sched_irq_restore(saved_mstatus);
         return MUTEX_ERR_NOT_OWNER;
