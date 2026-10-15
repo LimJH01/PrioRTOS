@@ -8,7 +8,6 @@ BUILD_DIR := build
 OBJ_DIR   := $(BUILD_DIR)/obj
 
 # 3. 컴파일러 플래그
-# - __builtin_clz 인라인 치환을 위해 -fno-builtin 제거
 # - 베어메탈/자립형 환경 플래그(-ffreestanding, -nostdlib) 유지
 CFLAGS  := -march=rv32i_zicsr -mabi=ilp32 -mcmodel=medany \
            -nostdlib -ffreestanding \

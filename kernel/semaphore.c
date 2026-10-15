@@ -35,8 +35,8 @@ SemaphoreResult_t semaphore_wait(Semaphore_t *sem) {
         return SEMAPHORE_OK;
     }
 
-    // 각 태스크의 우선순위에 해당하는 비트로 대기 여부를 기록한다.
-    uint32_t waiter_bit = 1U << self->priority;
+    uint32_t slot = (uint32_t)(self - g_tcbs);
+    uint32_t waiter_bit = 1U << slot;
     if (sem->waiters & waiter_bit) {
         sched_irq_restore(saved_mstatus);
         return SEMAPHORE_ERR_INVALID_WAITER;
@@ -70,14 +70,14 @@ SemaphoreResult_t semaphore_signal(Semaphore_t *sem) {
 
     if (sem->waiters != 0) {
         // 비트맵에서 가장 높은 우선순위의 대기 태스크를 선택한다.
-        uint32_t priority = SCHED_GET_HIGHEST_PRIO(sem->waiters);
-        if (!sched_wake_task(priority)) {
+        uint32_t slot = sched_highest_priority_slot(sem->waiters);
+        if (slot >= MAX_TASKS || !sched_wake_task(slot)) {
             sched_irq_restore(saved_mstatus);
             return SEMAPHORE_ERR_INVALID_WAITER;
         }
 
         // 깨운 태스크는 대기자 집합에서 제거한다.
-        sem->waiters &= ~(1U << priority);
+        sem->waiters &= ~(1U << slot);
     } else {
         // 대기자가 없으면 자원 카운트를 증가시킨다.
         if (sem->count == UINT32_MAX) {

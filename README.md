@@ -14,6 +14,7 @@
 - [요구사항 초안](docs/requirements.md): 목표 범위, 요구사항 ID, 검증 기준 및 현재 구현 기준선
 - [설계 결정 기록](docs/design-decisions.md): 확정이 필요한 플랫폼·시간·IPCP·오류 정책
 - [구현 지도](docs/implementation-map.md): 파일별 함수 트리, 실제 호출 그래프 및 다음 구현 순서
+- [IPCP 변경 기록](docs/ipcp-change-record.md): IPCP 구현으로 수정·추가·삭제한 파일과 동작 상세
 
 문서에 `제안` 또는 `미결정`으로 표시된 내용은 합의 전까지 확정된 제품 요구사항이 아닙니다. 아래 아키텍처 설명의 목표/예시와 현재 구현 상태도 구분해서 확인하세요.
 
@@ -24,14 +25,14 @@
 본 커널은 항공·방산 임베디드 제어기(Flight Control System, Missile Actuator System) 탑재를 전제로 하며, 다음 5대 공학적 목표를 최상위 불변식(Top-Level Invariants)으로 설정합니다. FreeRTOS의 한계를 개선하여 IPCP, RMS, 제로 레이턴시 디스패칭을 탑재한 Hard RTOS 마이크로커널을 지향합니다.
 
 * **`OBJ-01` Strict Mathematical Determinism & Bounded WCET**
-커널 내부의 모든 핵심 알고리즘(태스크 디스패치, 동기화 획득/반환, 틱 처리)은 $O(1)$의 고정 복잡도를 가지며, 루프와 재귀를 배제하여 스케줄러 실행 경로와 인터럽트 지연 시간(Interrupt Latency)이 수학적으로 유계(Strictly Bounded)됩니다.
+커널 내부의 핵심 알고리즘은 고정된 태스크/자원 상한에 의해 실행 횟수가 제한됩니다. 현재 스케줄러와 IPCP는 task 및 mutex 수를 순회하므로 비용은 설정 상한에 따라 증가하며, 실제 WCET와 인터럽트 지연은 타깃에서 검증해야 합니다.
 * **`OBJ-02` Elimination of Dynamic Failure Modes**
 동적 힙 할당, 가변 길이 링크드 리스트, 런타임 태스크 생성/삭제를 아키텍처 레벨에서 배제하여 컴파일 타임에 전체 시스템의 메모리 레이아웃을 확정하고 힙 단편화 및 OOM(Out of Memory) 실패 모드를 원천 제거합니다.
 * **`OBJ-03` Single Worst-Case Blocking Bound via IPCP**
 Immediate Priority Ceiling Protocol(IPCP)을 적용하여 임의의 태스크가 겪을 수 있는 최악 차단 시간($B_i$)을 단 1회의 최대 임계 구역($\max B_k$)으로 한정하며, 연쇄 차단(Chained Blocking) 및 상호 교착 상태(Deadlock)의 부재를 이론적으로 보장합니다.
 * **`OBJ-04` Design for High Verifiability & Bounded Formal Checking**
-* **결정론적 단일 제어 흐름:** 복잡한 중첩 삼항 연산자와 매크로 분기를 배제하고, 핵심 디스패치 루틴(`sched_select_next`)을 루프 없는 단일 분기($$O(1)$$)로 설계하여 제어 흐름 분석(CFG) 및 커버리지 테스팅이 용이한 구조를 유지합니다.
-* **CBMC 기반 핵심 불변식 검증:** 포화 모델 체킹 대신 SAT 기반 유계 모델 체커(CBMC)를 적용하여 `mutex.c`의 IPCP 자원 획득 시 우선순위 상한 불변식($P_{active} \le Ceiling$)과 동기화 무결성을 정형적으로 검증(Bounded Model Checking)합니다.
+* **결정론적 제어 흐름:** 고정된 최대 task/mutex 수를 순회하는 스케줄링 및 IPCP 제어 흐름으로 CFG와 커버리지 테스팅이 가능하도록 유지합니다.
+* **CBMC 기반 핵심 불변식 검증:** 포화 모델 체킹 대신 SAT 기반 유계 모델 체커(CBMC)를 적용하여 `ipcp.c`의 IPCP 자원 획득 시 우선순위 상한 불변식($P_{active} \le Ceiling$)과 동기화 무결성을 정형적으로 검증(Bounded Model Checking)합니다.
 * **단위 검증 목표:** `gcov` 기준 핵심 스케줄링 및 동기화 모듈에 대해 95% 이상의 구문(Statement) 및 분기(Branch) 커버리지를 검증합니다.
 
 
@@ -60,9 +61,9 @@ CPU 주도권은 RISC-V M-Mode(Machine Mode) 권한 하에서 하드웨어 인�
             문맥 스위칭 요청   ▼
 +-------------------------------------------------------------------------+
 | [계층 2] 커널 스케줄러 코어 (SafeMicroRTOS Core)                         |
-|  - 모듈 구성: O(1) Bit-Search Dispatcher (sched.c)                      |
-|              IPCP Resource Manager (mutex.c)                            |
-|  - 실행 특성: Zero-Wait-Queue, 비차단 동기화, O(1) CLZ 비트 연산       |
+|  - 모듈 구성: 유효 우선순위 선형 탐색 디스패처 (sched.c)                |
+|              IPCP Resource Manager (ipcp.c)                             |
+|  - 실행 특성: 정적 waiter bitmap, ceiling 검사, 한정된 task 순회        |
 |  - 제어권 이동: context.S (32개 레지스터 하드웨어 백업/복원)            |
 +-------------------------------------------------------------------------+
                                ▲
@@ -85,7 +86,7 @@ CPU 주도권은 RISC-V M-Mode(Machine Mode) 권한 하에서 하드웨어 인�
 | --- | --- | --- | --- | --- |
 | **우선순위-태스크 관계** | 다대다 ($M:N$) | 1대1 ($1:1$) | 1대1 ($1:1$) | **1대1 ($1:1$)** |
 | **동일 우선순위 RR** | 지원 (비결정적 지터) | 금지 | 금지 | **원천 금지 (Zero-Jitter)** |
-| **스케줄러 구조** | 우선순위별 이중 리스트 | 64비트 비트맵 룩업 | 비트맵 $O(1)$ CLZ | **32비트 ready bitmap (고정 시간 선택 목표; 타깃 검증 전 보장 아님)** |
+| **스케줄러 구조** | 우선순위별 이중 리스트 | 64비트 비트맵 룩업 | 비트맵 $O(1)$ CLZ | **32비트 슬롯 ready bitmap + 유효 우선순위 순회 선택** |
 | **동기화 프로토콜** | 우선순위 상속 (PIP) | 뮤텍스 / 세마포어 | IPCP (Ceiling) | **IPCP (Ceiling)** |
 | **대기 큐 구조** | 블로킹 연결 리스트 | 블로킹 큐 | 큐 불필요 | **원천 배제 (포인터 0개 구조체)** |
 | **메모리 할당** | 동적 힙 지원 | 정적 / 동적 혼용 | 100% 정적 고정 | **100% 컴파일 타임 정적 고정** |
@@ -105,11 +106,11 @@ prio_rtos/
 ├── kernel/                           # [마이크로커널 코어 (약 800라인 엄수)]
 │   ├── include/                      
 │   │   ├── prio_rtos.h               # [Public API] task, semaphore, mutex API
-│   │   └── kernel_internal.h         # [Private Core] TCB_t, ready_bitmap, CLZ 매크로, LLR 매핑 태그
+│   │   └── kernel_internal.h         # [Private Core] TCB_t, 슬롯 기반 ready bitmap, 내부 선언
 │   ├── context.S                     # 문맥 교환 어셈블리 (Caller/Callee 레지스터 보존, SP 전환)
-│   ├── sched.c                       # O(1) 결정론적 스케줄러 (__builtin_clz 비트맵 탐색)
+│   ├── sched.c                       # 유효 우선순위 기반 선형 탐색 스케줄러
 │   ├── semaphore.c                   # 태스크 간 신호 전달 및 BLOCKED/READY 처리
-│   ├── mutex.c                       # IPCP (Immediate Priority Ceiling Protocol) 자원 락
+│   ├── ipcp.c                        # IPCP 설정, ceiling, 자원 잠금/해제
 │   └── trap.c                        # RISC-V M-mode 타이머 인터럽트(CLINT) 및 시스템 콜 디스패처
 │
 ├── bsp/                              # [보드 지원 패키지]

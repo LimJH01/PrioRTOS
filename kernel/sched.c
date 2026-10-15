@@ -15,8 +15,23 @@ TCB_t g_tcbs[MAX_TASKS];
 TCB_t *g_current_tcb = 0;
 uint32_t g_ready_bitmap = 0;
 
-// O(1)에 top_prio를 찾기 위한 어셈블리 매크로
-#define SCHED_GET_HIGHEST_PRIO(bitmap) (31 - __builtin_clz(bitmap))
+uint32_t sched_highest_priority_slot(uint32_t task_bitmap) {
+    uint32_t best_slot = MAX_TASKS;
+    uint32_t best_priority = 0U;
+
+    for (uint32_t slot = 0; slot < MAX_TASKS; ++slot) {
+        if ((task_bitmap & (1U << slot)) == 0U) {
+            continue;
+        }
+        if (best_slot == MAX_TASKS ||
+            g_tcbs[slot].priority > best_priority) {
+            best_slot = slot;
+            best_priority = g_tcbs[slot].priority;
+        }
+    }
+
+    return best_slot;
+}
 
 // 태스크가 while(1)을 탈출해 실수로 리턴했을 때 잡기 위한 안전 덫
 static void task_exit_trap(void) {
@@ -34,7 +49,7 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     if (prio >= MAX_TASKS){
         return TASK_CREATE_ERR_INVALID_PRIO;
     }
-    if (g_ready_bitmap & (1U << prio)){
+    if (g_tcbs[prio].state != TASK_STATE_UNUSED){
         return TASK_CREATE_ERR_PRIO_IN_USE;
     }
     if (task_func == 0 || stack == 0){
@@ -118,14 +133,21 @@ void priortos_start(void){
         kernel_panic("scheduler started without ready tasks");
 
     }
+    if (!ipcp_validate_configuration()) {
+        kernel_panic("invalid IPCP configuration");
+    }
     if (g_ready_bitmap == 0){
         kernel_panic("scheduler started without ready tasks");
     }
 
-    uint32_t top_prio = SCHED_GET_HIGHEST_PRIO(g_ready_bitmap);
+    uint32_t top_prio = sched_highest_priority_slot(g_ready_bitmap);
+    if (top_prio >= MAX_TASKS) {
+        kernel_panic("scheduler has no ready tasks");
+    }
     // []가 있으면 주소가 아닌 내용물, 따라서 &를 붙여야 한다.
     g_current_tcb = &g_tcbs[top_prio];
     g_current_tcb->state = TASK_STATE_RUNNING;
+    ipcp_scheduler_started();
 
     prio_context_first_switch(g_current_tcb);
 }
@@ -136,16 +158,24 @@ void sched_schedule(){
         kernel_panic("scheduler has no ready tasks");
     }
 
-    uint32_t top_prio = SCHED_GET_HIGHEST_PRIO(g_ready_bitmap);
-
-    // 주소를 비교, (주소가 다르면 무조건 우선순위가 더 높음)
-    if(g_current_tcb != &g_tcbs[top_prio]){
-        if (g_current_tcb->state == TASK_STATE_RUNNING){
-            g_current_tcb->state = TASK_STATE_READY;
-        }
-        g_current_tcb = &g_tcbs[top_prio];
-        g_current_tcb->state = TASK_STATE_RUNNING;
+    uint32_t top_slot = sched_highest_priority_slot(g_ready_bitmap);
+    if (top_slot >= MAX_TASKS) {
+        kernel_panic("scheduler has no ready tasks");
     }
+
+    TCB_t *next = &g_tcbs[top_slot];
+    if (g_current_tcb != NULL &&
+        g_current_tcb->state == TASK_STATE_RUNNING &&
+        next->priority <= g_current_tcb->priority) {
+        return;
+    }
+
+    if (g_current_tcb != NULL &&
+        g_current_tcb->state == TASK_STATE_RUNNING) {
+        g_current_tcb->state = TASK_STATE_READY;
+    }
+    g_current_tcb = next;
+    g_current_tcb->state = TASK_STATE_RUNNING;
 }
 
 uint32_t sched_irq_save(void) {
@@ -174,20 +204,21 @@ bool sched_block_current(uint32_t saved_mstatus) {
     }
 
     self->state = TASK_STATE_BLOCKED;
-    g_ready_bitmap &= ~(1U << self->priority);
+    uint32_t slot = (uint32_t)(self - g_tcbs);
+    g_ready_bitmap &= ~(1U << slot);
 
     sched_irq_restore(saved_mstatus);
     asm volatile ("ecall" ::: "memory");
     return true;
 }
 
-bool sched_wake_task(uint32_t priority) {
-    if (priority >= MAX_TASKS || g_tcbs[priority].state != TASK_STATE_BLOCKED) {
+bool sched_wake_task(uint32_t slot) {
+    if (slot >= MAX_TASKS || g_tcbs[slot].state != TASK_STATE_BLOCKED) {
         return false;
     }
 
-    g_tcbs[priority].state = TASK_STATE_READY;
-    g_ready_bitmap |= (1U << priority);
+    g_tcbs[slot].state = TASK_STATE_READY;
+    g_ready_bitmap |= (1U << slot);
     return true;
 }
 

@@ -38,27 +38,26 @@
 | [tasks.c](../app/tasks.c) | `sem_a_turn` 초기값 1, `sem_b_turn` 초기값 0으로 설정했다. A는 A 차례를 기다린 뒤 A를 출력하고 B를 깨우며, B도 반대로 동작한다. |
 | [README.md](../README.md), [implementation-map.md](./implementation-map.md) | 새 세마포어 파일과 태스크 전환 흐름을 문서에 반영했다. |
 
-`mutex.c`는 고정 크기 커널 풀에서 `mutex_create()`로 런타임에 생성하는 basic mutex를 제공한다. 생성된 ID를 공유 자원에 연결해 여러 태스크가 같은 mutex를 사용한다. 풀 용량은 `MAX_MUTEXES`로 제한되며, 경합 태스크 차단, 재귀 lock/비소유 unlock 오류, unlock 시 대기자에게 소유권 handoff를 처리한다. 이는 IPCP 구현이 아니며, priority ceiling/boost와 정적 자원 사용자 검증은 아직 없다. 세마포어와 mutex는 별도 기능이다.
+`kernel/ipcp.c`는 고정 ID mutex에 대해 IPCP를 처리한다. 초기화 시 `mutex_configure(id, user_slots)`로 사용 태스크 슬롯을 등록하면 기본 우선순위로 ceiling을 계산한다. ID와 사용자 목록은 스케줄러 시작 때 동결된다. lock은 요청 mutex의 free 여부와 system ceiling을 검사하며, 획득할 수 없는 태스크는 해당 mutex의 고정 waiter bitmap에서 대기한다. unlock은 보유 mutex의 ceiling으로 유효 우선순위를 재계산하고, system-ceiling 조건을 통과한 대기자에게 소유권을 넘긴 후 READY로 만든다. 세마포어는 IPCP와 별도 기능이다.
 
-`mutex_create()`는 태스크 초기화 코드나 태스크 문맥에서 호출할 수 있으며, 인터럽트 비활성 구간에서 빈 슬롯을 할당한다. 생성된 mutex가 다 소진되면 `MUTEX_ERR_NO_FREE_SLOT`을 반환한다. 현재 해제 API는 없어 생성된 슬롯은 시스템 수명 동안 점유된다.
-
-예를 들어 초기화 코드에서 한 번 생성한 ID를 공유 자원 사용자들이 함께 사용한다.
+사용자 비트맵은 `g_tcbs[]`의 슬롯 번호를 사용한다. 현재 `task_create()`는 기본 우선순위와 슬롯 번호를 같은 인수로 지정하므로, 예를 들어 슬롯 1과 2가 자원을 쓰면 초기화 코드에서 다음처럼 등록한다.
 
 ```c
-static uint32_t uart_mutex_id;
+enum { UART_MUTEX_ID = 0U };
 
 void resources_init(void) {
-    if (mutex_create(&uart_mutex_id) != MUTEX_OK) {
-        kernel_panic("mutex creation failed");
+    uint32_t uart_users = (1U << 1) | (1U << 2);
+    if (mutex_configure(UART_MUTEX_ID, uart_users) != MUTEX_OK) {
+        kernel_panic("mutex configuration failed");
     }
 }
 
 void write_uart_from_task(void) {
-    if (mutex_lock(uart_mutex_id) != MUTEX_OK) {
+    if (mutex_lock(UART_MUTEX_ID) != MUTEX_OK) {
         kernel_panic("mutex lock failed");
     }
     uart_putc('A');
-    if (mutex_unlock(uart_mutex_id) != MUTEX_OK) {
+    if (mutex_unlock(UART_MUTEX_ID) != MUTEX_OK) {
         kernel_panic("mutex unlock failed");
     }
 }
@@ -106,7 +105,7 @@ QEMU 실행은 기능 확인이지 실기기 timing/WCET 검증은 아니다.
 
 1. **Idle task가 없다.** 모든 응용 태스크가 동시에 BLOCKED가 되면 ready bitmap이 0이 되어 현재 스케줄러가 panic한다. 이 A/B 데모에서는 하나의 토큰이 항상 진행 중이므로 정상 흐름에서 두 태스크가 동시에 기다리지는 않는다.
 2. **`task_yield()`는 교대 API가 아니다.** 현재 태스크를 계속 READY로 두고 ecall을 요청한다. 고정 우선순위 정책에서는 그 태스크가 다시 선택될 수 있다.
-3. **Basic mutex는 IPCP가 아니다.** 자원 소유권과 대기자 handoff는 있지만, priority ceiling/boost와 IPCP의 deadlock/blocking 보장은 구현하지 않았다.
+3. **IPCP 코드가 구현되었지만 아직 검증되지 않았다.** 정적 설정, ceiling, 유효 우선순위 조정과 waiter handoff가 연결되어 있다. IPCP 요구사항별 자동 검증은 추가해야 한다.
 4. **자동 테스트 및 정형 검증은 아직 없다.** 현재 검증은 빌드와 QEMU 출력 확인에 한정된다.
 5. **A/B 태스크 함수는 데모 코드다.** 제품 사용 전에는 오류 정책, 동시성 경계, idle 동작 및 trap 오류 처리를 별도로 검증해야 한다.
 
@@ -114,4 +113,4 @@ QEMU 실행은 기능 확인이지 실기기 timing/WCET 검증은 아니다.
 
 1. 슬롯 0에 idle task를 추가하고 ready bitmap이 비었을 때 idle로 전환한다.
 2. 호스트 단위 테스트 또는 QEMU 테스트로 semaphore count, block/wakeup, 잘못된 호출을 검증한다.
-3. 별도 설계 결정 후 basic mutex에 IPCP의 자원 설정 및 유효 우선순위 관리를 추가한다. 세마포어와 basic mutex를 IPCP 구현으로 간주하지 않는다.
+3. IPCP의 설정 경계, system-ceiling 차단, nested lock, boost 복구 및 동순위 비선점 규칙을 자동 테스트한다.
