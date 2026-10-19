@@ -1,5 +1,6 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
+#include "clint.h"
 #include <stddef.h>
 #define STACK_ALIGNED __attribute__((aligned(16)))
 
@@ -196,6 +197,10 @@ void sched_irq_restore(uint32_t saved_mstatus) {
     }
 }
 
+void sched_request_reschedule(void) {
+    clint_send_software_interrupt();
+}
+
 bool sched_block_current(uint32_t saved_mstatus) {
     TCB_t *self = g_current_tcb;
     if (self == NULL || self->state != TASK_STATE_RUNNING) {
@@ -207,8 +212,8 @@ bool sched_block_current(uint32_t saved_mstatus) {
     uint32_t slot = (uint32_t)(self - g_tcbs);
     g_ready_bitmap &= ~(1U << slot);
 
+    sched_request_reschedule();
     sched_irq_restore(saved_mstatus);
-    asm volatile ("ecall" ::: "memory");
     return true;
 }
 
@@ -223,5 +228,5 @@ bool sched_wake_task(uint32_t slot) {
 }
 
 void task_yield(void) {
-    asm volatile ("ecall" ::: "memory");
+    sched_request_reschedule();
 }

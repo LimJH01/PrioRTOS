@@ -14,6 +14,7 @@ int main(void){
     uart_puts("===================================\n\n");
 
     trap_init();
+    clint_software_interrupt_init();
     clint_timer_init();
 
     // [주의] mstatus.MIE(전역 인터럽트)를 main()에서 직접 활성화 금지!
@@ -21,7 +22,7 @@ int main(void){
     // 전역 인터럽트는 첫 태스크 디스패치 시 prio_context_first_switch의 mret(0x1880, MPIE=1)을 통해 하드웨어가 자동 활성화함.
     // asm volatile("csrs mstatus, %0" :: "r"(1 << 3));
 
-    uart_puts("== timer interrupt enabled ==\n");
+    uart_puts("== timer/software interrupts enabled ==\n");
 
     TaskCreateResult_t task_result = tasks_init();
     if (task_result != TASK_CREATE_OK){

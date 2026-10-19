@@ -87,8 +87,8 @@ SemaphoreResult_t semaphore_signal(Semaphore_t *sem) {
         ++sem->count;
     }
 
-    sched_irq_restore(saved_mstatus);
     // 스케줄러에 진입해, 깨운 태스크가 현재 태스크보다 우선순위가 높으면 선점시킨다.
-    asm volatile ("ecall" ::: "memory");
+    sched_request_reschedule();
+    sched_irq_restore(saved_mstatus);
     return SEMAPHORE_OK;
 }

@@ -1,5 +1,24 @@
 #include <clint.h>
 
+void clint_software_interrupt_init(void) {
+    CLINT_MSIP = 0U;
+
+    uint32_t mie;
+    asm volatile("csrr %0, mie" : "=r"(mie));
+    mie |= 1U << 3; // MSIE = bit 3
+    asm volatile("csrw mie, %0" :: "r"(mie));
+}
+
+void clint_send_software_interrupt(void) {
+    // Order kernel state updates before the interrupt request reaches the hart.
+    asm volatile("fence iorw, iorw" ::: "memory");
+    CLINT_MSIP = 1U;
+}
+
+void clint_clear_software_interrupt(void) {
+    CLINT_MSIP = 0U;
+}
+
 uint64_t clint_get_mtime(void){
     uint32_t high;
     uint32_t low;

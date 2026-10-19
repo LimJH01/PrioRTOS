@@ -272,7 +272,7 @@ MutexResult_t mutex_lock(uint32_t mutex_id) {
         waiting = true;
         /*
          * sched_block_current()는 saved_mstatus 상태를 받아 상태/ready bit를
-         * 갱신한 뒤 ecall로 문맥 전환한다. 실패하면 이 함수가 waiter bit를
+         * 갱신한 뒤 MSIP로 재스케줄을 요청한다. 실패하면 이 함수가 waiter bit를
          * 되돌려 대기자 테이블에 고아 항목이 남지 않게 한다.
          */
         if (!sched_block_current(saved_mstatus)) {
@@ -287,7 +287,7 @@ MutexResult_t mutex_lock(uint32_t mutex_id) {
 /*
  * mutex 소유자만 해제할 수 있다.
  * 해제, 기존 소유자의 priority 복구, 적격 대기자 handoff를 하나의
- * 인터럽트 보호 구간에서 처리한 다음 ecall로 선점 여부를 평가한다.
+ * 인터럽트 보호 구간에서 처리한 다음 MSIP로 선점 여부를 평가한다.
  */
 MutexResult_t mutex_unlock(uint32_t mutex_id) {
     if (mutex_id >= MAX_MUTEXES) {
@@ -318,8 +318,8 @@ MutexResult_t mutex_unlock(uint32_t mutex_id) {
     refresh_effective_priority(slot);
     /* 다른 mutex ceiling 때문에 block된 태스크도 함께 재평가한다. */
     dispatch_eligible_waiters();
+    sched_request_reschedule();
     sched_irq_restore(saved_mstatus);
-    asm volatile ("ecall" ::: "memory");
     return MUTEX_OK;
 }
 

@@ -18,17 +18,15 @@ void trap_handler(){
     uint32_t mcause;
     asm volatile("csrr %0, mcause" : "=r"(mcause));
 
-    // 0x80000007, CLINT 인터럽트 사유임
-    if (mcause == 0x80000007){
+    if (mcause == 0x80000003U) {
+        clint_clear_software_interrupt();
+        sched_schedule();
+    } else if (mcause == 0x80000007U) {
         clint_set_next_timer();
         uart_putc('.');
 
         sched_schedule();
-    }else if (mcause == 11U){
-        TaskContext_t *context = (TaskContext_t *)g_current_tcb->sp;
-        context->mepc += 4U;
-        sched_schedule();
-    }else{
+    } else {
         while(1){
             asm volatile ("wfi");
         }

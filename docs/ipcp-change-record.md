@@ -77,7 +77,7 @@
 3. `dispatch_eligible_waiters()`로 잠금 가능한 waiter를 다시 평가한다.
 4. 선택한 waiter를 새 소유자로 먼저 기록하고, waiter bitmap에서 제거하고, effective priority를 갱신한 뒤 READY로 깨운다.
 5. 더 이상 적격 waiter가 없을 때까지 반복한다. 다른 mutex의 ceiling 때문에 아직 대기해야 하는 태스크는 BLOCKED로 남겨 다음 unlock에서 다시 검사한다.
-6. 인터럽트를 복구하고 `ecall`을 요청해 더 높은 우선순위 태스크가 준비되었다면 스케줄러가 실행하도록 한다.
+6. MSIP를 요청하고 인터럽트를 복구해 더 높은 우선순위 태스크가 준비되었다면 스케줄러가 실행하도록 한다.
 
 대기자 순위는 effective priority 내림차순, 동률이면 슬롯 번호 오름차순이다. 소유권은 wakeup보다 먼저 기록하여 waiter가 READY가 된 뒤 소유자 없는 mutex를 관찰하지 않도록 한다. 내부 waiter 상태가 TCB 상태와 불일치하면 `kernel_panic()`으로 커널 오류를 드러낸다.
 
@@ -227,7 +227,7 @@ priortos_start();  // IPCP 설정 검증 후 설정 동결
 5. `mutex_unlock(id)`는 현재 소유자만 수행할 수 있다.
 6. 해당 자원을 해제하고 소유자의 effective priority를 나머지 보유 자원에 따라 낮추거나 기본값으로 복원한다.
 7. 잠금 가능한 waiter가 있다면 소유권 이전, priority 재계산, READY 전환 순서로 깨운다.
-8. `ecall` 경로가 스케줄러를 호출한다. 현재 태스크보다 엄격히 높은 우선순위가 준비되었을 때만 선점한다.
+8. MSIP 경로가 스케줄러를 호출한다. 현재 태스크보다 엄격히 높은 우선순위가 준비되었을 때만 선점한다.
 
 ### 차단 및 재개
 

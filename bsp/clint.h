@@ -5,6 +5,7 @@
 
 //QEMU virt 보드의 타이머 하드웨어 주소 이름표
 #define CLINT_BASE       0x02000000
+#define CLINT_MSIP (*(volatile uint32_t *)(CLINT_BASE + 0x0000))
 #define CLINT_MTIMECMP_LOW (*(volatile uint32_t *)(CLINT_BASE + 0x4000))
 #define CLINT_MTIMECMP_HIGH (*(volatile uint32_t *)(CLINT_BASE + 0x4004))
 #define CLINT_MTIME_LOW (*(volatile uint32_t *)(CLINT_BASE + 0xBFF8))
@@ -15,6 +16,9 @@
 #define TIMER_INTERVAL   10000000ULL
 
 void clint_timer_init(void);
+void clint_software_interrupt_init(void);
+void clint_send_software_interrupt(void);
+void clint_clear_software_interrupt(void);
 void clint_set_next_timer(void);
 uint64_t clint_get_mtime(void);
 void clint_set_mtimecmp(uint64_t compare_value);

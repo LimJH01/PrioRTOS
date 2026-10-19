@@ -64,8 +64,8 @@ PrioRTOS/
 │   │   ├── task_create()     TCB/초기 문맥/guard 생성, ready bit 설정
 │   │   ├── priortos_start()  유효 우선순위 최고 태스크 선택 -> 최초 문맥 전환
 │   │   ├── sched_schedule()  엄격히 높은 우선순위 선점, 동순위 현 태스크 유지
-│   │   ├── task_yield()      ecall을 통한 공통 재스케줄 요청
-│   │   ├── sched_block_current() BLOCKED 전환 후 ecall로 문맥 전환 요청
+│   │   ├── task_yield()      MSIP를 통한 공통 재스케줄 요청
+│   │   ├── sched_block_current() BLOCKED 전환 후 MSIP 재스케줄 요청
 │   │   ├── sched_wake_task() BLOCKED -> READY 및 ready bit 복구
 │   │   ├── stack_overflow_panic() -> kernel_panic()
 │   │   └── task_exit_trap()  태스크 함수가 반환할 경우 WFI 루프
@@ -75,7 +75,7 @@ PrioRTOS/
 │   │   └── semaphore_signal() 대기자 wake 또는 카운트 증가
 │   ├── trap.c
 │   │   ├── trap_init()       mtvec에 trap_entry 등록
-│   │   └── trap_handler()    timer interrupt 또는 ecall -> sched_schedule()
+│   │   └── trap_handler()    timer/software interrupt -> sched_schedule()
 │   ├── context.S
 │   │   ├── prio_context_first_switch  최초 TCB 문맥 복원 -> mret
 │   │   └── trap_entry                 프레임 저장/가드 검사/핸들러/복원
@@ -85,9 +85,14 @@ PrioRTOS/
 ├── docs/
 │   ├── requirements.md       요구사항 및 상태 기준
 │   ├── design-decisions.md   미결정 설계 선택
+│   ├── traceability-matrix.md 요구사항과 구현/검증 사례 대조
 │   └── implementation-map.md 이 파일
 └── linker.ld                 메모리 배치와 시스템 스택 심볼
 ```
+
+요구사항별 구현 연결, 제안 검증 사례 및 현재 간극은
+[추적성 매트릭스](./traceability-matrix.md)를 참고한다. 매트릭스의 `TC-*`는
+자동화 테스트가 존재하거나 통과했다는 의미가 아니라 검증 계획 식별자다.
 
 ## 현재 코드의 호출 그래프
 
@@ -119,7 +124,7 @@ _start [구현]
 ### 타이머 인터럽트 및 문맥 전환
 
 ```text
-하드웨어 timer interrupt 또는 task API의 ecall
+하드웨어 timer interrupt 또는 CLINT MSIP software interrupt
 └── trap_entry [context.S]
     ├── 스택 여유 공간 검사
     ├── 전체 태스크 문맥 저장
@@ -132,8 +137,8 @@ _start [구현]
     │   │   │   └── clint_set_mtimecmp
     │   │   ├── uart_putc('.')
     │   │   └── sched_schedule [구현]
-    │   ├── mcause가 machine ecall이면
-    │   │   ├── 현재 trap frame의 mepc를 4 증가
+    │   ├── mcause가 machine software interrupt이면
+    │   │   ├── CLINT MSIP pending bit를 지움
     │   │   └── sched_schedule [구현]
     │   └── 지원하지 않는 원인은 WFI 루프
     ├── 선택된 TCB의 sp로 전환 및 문맥 복원
@@ -150,7 +155,7 @@ task_b <-> semaphore_wait(sem_b_turn)
 
 semaphore_wait/signal
 └── ready bitmap 및 TCB 상태 갱신
-    └── ecall -> trap_entry -> trap_handler -> sched_schedule
+    └── MSIP -> trap_entry -> trap_handler -> sched_schedule
         └── 선택 태스크의 문맥 복원 및 실행
 ```
 
@@ -191,14 +196,14 @@ CBMC 검증 및 추적성 검사
 
 ## 다음 구현 순서 제안
 
-기본 READY/BLOCKED 전이와 문맥 전환은 ecall 및 semaphore 경로로 연결했다.
+기본 READY/BLOCKED 전이와 문맥 전환은 MSIP 및 semaphore 경로로 연결했다.
 IPCP는 고정 사용자 설정, ceiling 및 유효 우선순위 선택 경로에 연결했다.
 다음에는 IPCP 상태 전이의 자동 검증과 idle/빈 ready set 동작을 보완한다.
 
 | 순서 | 다음 작업 | 구현 범위 | 완료 기준 |
 |---|---|---|---|
 | 1 | idle 동작과 빈 ready set | 슬롯 0 idle 태스크를 등록하고 `sched_schedule()`의 빈 ready set 처리를 정의한다. | 모든 응용 태스크가 BLOCKED여도 커널이 panic하지 않고 idle로 실행된다. |
-| 2 | 스케줄러/세마포어 테스트 | 최고 우선순위 선택, semaphore count/handoff, block/wakeup, ecall/timer 통합 테스트를 작성한다. | 두 태스크 교대, 우선순위 대기자 선택, 오류 입력의 반환값과 상태 불변식이 자동 검증된다. |
+| 2 | 스케줄러/세마포어 테스트 | 최고 우선순위 선택, semaphore count/handoff, block/wakeup, MSIP/timer 통합 테스트를 작성한다. | 두 태스크 교대, 우선순위 대기자 선택, 오류 입력의 반환값과 상태 불변식이 자동 검증된다. |
 | 3 | IPCP 테스트 | 정적 설정, system-ceiling 차단, 중첩 lock, boost 복구, handoff 및 동순위 스케줄링을 테스트한다. | 상태·소유권·유효 우선순위·ready bitmap과 API 결과가 기대값과 일치한다. |
 | 4 | CBMC 및 시간 측정 | 검증 하네스를 먼저 작성하고, 실제 툴체인/ISA에서 생성 코드와 타이머 주기를 확인한다. 이후 대상 기반 WCET/지연 측정을 수행한다. | 검증 범위와 가정, 측정 환경, 결과가 재현 가능하게 기록된다. |
 

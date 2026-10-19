@@ -67,6 +67,7 @@ __attribute__((noreturn)) void stack_overflow_panic(void);
 
 //sched.c 내부 함수
 void sched_schedule(void);
+void sched_request_reschedule(void);
 uint32_t sched_irq_save(void);
 void sched_irq_restore(uint32_t saved_mstatus);
 bool sched_block_current(uint32_t saved_mstatus);
