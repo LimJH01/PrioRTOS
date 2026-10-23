@@ -50,3 +50,22 @@
 - Mutex ceiling 승격·복원, 최대 2단계 중첩, 블로킹 시간 상한을 검증한다.
 - 링크 결과와 소스 의존성을 검사해 부팅 완료 후 힙 할당/해제 호출이 없고, TCB와 태스크 스택이 정적 BSS에 배치되는지 확인한다.
 - CLZ 단일 명령·단일 사이클 성능은 RV32IMAC 빌드의 생성 코드 및 대상 하드웨어에서 별도로 확인한다. O(1) 복잡도만으로 사이클 상한이나 Hard Real-Time 보장을 주장하지 않는다.
+
+## 6. 현재 구현 기준: 부팅 및 트랩/패닉 동작
+
+이 절은 목표 기능이 아니라 현재 소스 코드가 수행하는 동작을 명세한다. 적혀 있지 않은 기능은 구현된 것으로 간주하지 않는다.
+
+### 6.1 부팅 및 최초 태스크 실행
+
+1. 실행 환경이 `boot/startup.S`의 `_start`로 제어를 넘긴다. 시작 코드 자체는 리셋 벡터 주소를 설정하지 않으므로, 실제 진입 주소는 보드 또는 로더 설정에 따른다.
+2. `_start`는 링커 심볼 `_stack_top`으로 `sp`를 설정하고, `__bss_start`부터 `__bss_end`까지 0으로 초기화한 뒤 `main()`을 호출한다. `mhartid` 검사, `gp` 초기화 및 `.data`의 LMA→VMA 복사는 수행하지 않는다. 현재 링커 스크립트는 `.data`를 RAM에 배치한다.
+3. `main()`은 UART를 초기화하고 부팅 메시지를 출력한 뒤 `trap_init()`을 호출한다. `trap_init()`은 `trap_entry` 주소를 `mtvec`에 기록하며 Vectored Mode를 설정하지 않으므로 Direct Mode로 동작한다.
+4. `main()`은 CLINT 소프트웨어 인터럽트와 타이머를 초기화하고, 이어 `tasks_init()`에서 응용 태스크 및 동기화 객체를 등록한다. 이 시점에 `mie`의 MSIE/MTIE 비트를 설정하지만, 전역 인터럽트 허용 비트 `mstatus.MIE`는 직접 켜지 않는다.
+5. `priortos_start()`는 Idle 태스크를 등록하고 IPCP 설정을 검증한 뒤 준비된 태스크 중 가장 높은 우선순위 태스크를 선택한다. 최초 문맥 복원 후 `mret`으로 해당 태스크 함수에 진입하며, 이때 저장된 `mstatus` 값에 따라 전역 인터럽트가 활성화된다.
+
+### 6.2 트랩 처리 및 패닉
+
+- 현재 `trap_handler()`는 machine software interrupt (`mcause == 0x80000003`)를 지우고 스케줄러를 호출한다. machine timer interrupt (`mcause == 0x80000007`)에서는 다음 타이머를 예약하고 UART에 `.`을 출력한 뒤 스케줄러를 호출한다.
+- 그 외의 trap cause는 원인별 처리나 복구 없이 `trap_handler()` 내부의 `wfi` 무한 루프에 진입한다. 이 경로는 `kernel_panic()`을 호출하지 않으며 `mcause`, `mepc`, `mtval`을 출력하지 않는다. 따라서 불법 명령어, 주소 정렬 위반 및 접근 오류에 대해 별도 fail-stop panic 진단 정책을 제공하지 않는다.
+- 코드가 `kernel_panic(msg)`를 직접 호출하면 `mstatus.MIE`를 0으로 설정하고, `msg`가 null이 아니면 `[KERNEL PANIC]` 접두사와 메시지를 UART로 출력한 뒤 `wfi` 무한 루프에 머문다. 개별 인터럽트 허용 비트(`mie`)를 지우거나 원인 CSR을 읽어 출력하지는 않는다.
+- 태스크 함수가 반환하면 `task_exit_trap()`의 `wfi` 무한 루프에 들어간다. 태스크 삭제나 종료 후 스케줄링은 수행하지 않는다.

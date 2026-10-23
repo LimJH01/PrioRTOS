@@ -103,23 +103,26 @@ PrioRTOS/
 ### 부팅 및 최초 태스크 실행
 
 ```text
-_start [구현]
+_start [구현: sp 설정 -> .bss 0 초기화]
 └── main [구현]
-    ├── uart_init [구현]
-    ├── uart_puts [구현]
-    │   └── uart_putc [구현]
-    ├── trap_init [구현]
-    ├── clint_timer_init [구현]
-    │   ├── clint_get_mtime [구현]
-    │   └── clint_set_mtimecmp [구현]
-    ├── tasks_init [구현]
-    │   ├── task_create(prio=1) [구현]
-    │   └── task_create(prio=2) [구현]
+    ├── uart_init 및 부팅 메시지 출력
+    ├── trap_init [mtvec Direct Mode에 trap_entry 등록]
+    ├── clint_software_interrupt_init [MSIP 초기화 및 mie.MSIE 설정]
+    ├── clint_timer_init [첫 mtimecmp 설정 및 mie.MTIE 설정]
+    ├── tasks_init [태스크/세마포어/Mutex 등록]
     └── priortos_start [구현]
+        ├── Idle 태스크 등록 및 IPCP 설정 검증
         ├── ready bitmap에서 최고 우선순위 선택
         └── prio_context_first_switch [context.S]
-            └── 선택 태스크 진입점: task_a 또는 task_b
+            └── mret -> 선택 태스크 진입점: task_a 또는 task_b
 ```
+
+현재 시작 코드는 Hart ID 검사, `gp` 초기화, `.data` 복사를 수행하지 않는다.
+`linker.ld`는 `.data`를 RAM에 배치하며 `_start`는 `.bss`만 0으로 초기화한다.
+`trap_init()`은 `mtvec`의 모드를 별도 설정하지 않고 `trap_entry` 주소를 기록하므로
+Vectored Mode가 아닌 Direct Mode로 동작한다. CLINT 인터럽트별 `mie` 비트는
+`main()`에서 설정되지만, 전역 `mstatus.MIE`는 첫 문맥 전환의 `mret`까지 활성화하지 않는다.
+리셋 벡터의 실제 주소는 실행 플랫폼/로더 설정의 영역이며, 시작 코드 자체가 이를 설정하지 않는다.
 
 ### 타이머 인터럽트 및 문맥 전환
 
@@ -140,7 +143,7 @@ _start [구현]
     │   ├── mcause가 machine software interrupt이면
     │   │   ├── CLINT MSIP pending bit를 지움
     │   │   └── sched_schedule [구현]
-    │   └── 지원하지 않는 원인은 WFI 루프
+    │   └── 지원하지 않는 원인은 진단/복구 없이 WFI 루프
     ├── 선택된 TCB의 sp로 전환 및 문맥 복원
     └── mret -> 선택 태스크로 복귀
 ```
@@ -167,14 +170,24 @@ semaphore_wait/signal
 trap_entry stack guard/headroom 실패
 └── stack_overflow_panic
     └── kernel_panic
-        ├── 전역 인터럽트 비활성화
-        ├── uart_puts -> uart_putc
+        ├── mstatus.MIE 비활성화
+        ├── 전달된 메시지가 있으면 uart_puts -> uart_putc
         └── WFI 루프
 
 태스크 함수 반환
 └── task_exit_trap
     └── WFI 루프
+
+지원하지 않는 trap cause
+└── trap_handler 내부 WFI 루프 [kernel_panic/CSR 진단 호출 없음]
 ```
+
+현재 `kernel_panic()`은 전역 인터럽트를 비활성화하고 선택적인 문자열 메시지만 UART로 출력한 뒤
+WFI 루프에 진입한다. `mcause`, `mepc`, `mtval`을 읽거나 출력하지 않는다.
+`trap_handler()`는 machine software interrupt와 machine timer interrupt만 처리한다.
+그 밖의 원인은 별도 패닉 처리 없이 핸들러 안에서 WFI 루프에 머문다.
+따라서 불법 명령어, 주소 정렬 위반, 접근 오류 등 하드웨어 예외를 공통 fail-stop
+패닉 경로로 전달하고 원인 CSR을 출력하는 정책은 현재 구현되어 있지 않다.
 
 ## 현재 구현 경계와 미검증 경로
 
