@@ -14,6 +14,7 @@
 #define UART_LSR (*(volatile uint8_t *)(UART_BASE + 0x05)) // 라인 상태 (버퍼 비었는지 확인)
 
 #define LSR_TX_EMPTY (1 << 5) // 5번 비트: 송신 버퍼 빔 (THRE)
+#define UART_TX_POLL_LIMIT 100000U
 
 void uart_init(void) {
     // 1. 초기에는 UART 자체 인터럽트를 끄고 폴링(Polling) 방식으로 동작시킴
@@ -36,21 +37,30 @@ void uart_init(void) {
 }
 
 // 한글자 전송
-void uart_putc(char c) {
-    // 하드웨어 송신 버퍼가 비워질 때까지 대기 (무한 루프 방어는 일단 생략)
-    while ((UART_LSR & LSR_TX_EMPTY) == 0);
-    
-    // 버퍼가 비었으면 1바이트 전송
-    UART_THR = (uint8_t)c;
+UartResult_t uart_putc(char c) {
+    for (uint32_t polls = 0; polls < UART_TX_POLL_LIMIT; ++polls) {
+        if ((UART_LSR & LSR_TX_EMPTY) != 0) {
+            UART_THR = (uint8_t)c;
+            return UART_OK;
+        }
+    }
+
+    return UART_ERR_TX_TIMEOUT;
 }
 
 // 문자열 출력 및 줄바꿈 처리
 // 포인터로 전달하는 것이 메모리에 좋다
-void uart_puts(const char *str) {
+UartResult_t uart_puts(const char *str) {
     while (*str) {
         if (*str == '\n') {
-            uart_putc('\r'); // 터미널에서 줄바꿈이 계단처럼 밀리는 것 방지
+            if (uart_putc('\r') != UART_OK) {
+                return UART_ERR_TX_TIMEOUT;
+            }
         }
-        uart_putc(*str++);
+        if (uart_putc(*str++) != UART_OK) {
+            return UART_ERR_TX_TIMEOUT;
+        }
     }
+
+    return UART_OK;
 }

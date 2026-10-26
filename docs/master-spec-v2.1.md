@@ -993,13 +993,13 @@ static inline void exit_critical(void){
 
 출력: 없음 | UART 16550 통신 속도(Baudrate), 데이터 비트, 패리티, FIFO 활성화. |
 
-| **[구현 완료]** | `void uart_putc(char c)` | 입력: c (출력할 문자)
+| **[구현 완료]** | `UartResult_t uart_putc(char c)` | 입력: c (출력할 문자)
 
-출력: 없음 | LSR(Line Status Register) TX 빈 공간을 폴링 확인 후 바이트 전송. |
+출력: `UART_OK` 또는 `UART_ERR_TX_TIMEOUT` | LSR(Line Status Register) TX 준비 상태를 최대 100,000회 폴링 확인 후 바이트 전송. 상한 초과 시 오류를 반환한다. |
 
-| **[구현 완료]** | `void uart_puts(const char *str)` | 입력: str (널 종료 문자열)
+| **[구현 완료]** | `UartResult_t uart_puts(const char *str)` | 입력: str (널 종료 문자열)
 
-출력: 없음 | 문자열 끝(`\0`)까지 순회하며 `uart_putc()`를 호출하여 시리얼 송신. |
+출력: `UART_OK` 또는 `uart_putc()`의 오류 | 문자열 끝(`\0`)까지 순회하며 `uart_putc()`를 호출하여 시리얼 송신. 문자 전송 실패 시 즉시 해당 오류를 반환한다. |
 
 ### 5.12. app/main.c (어플리케이션 진입점)
 

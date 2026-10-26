@@ -32,7 +32,9 @@ void task_a(void){
             kernel_panic("task A mutex lock failed");
         }
         for (uint32_t i = 0; i < TASK_OUTPUT_BURST_SIZE; ++i) {
-            uart_putc('A');
+            if (uart_putc('A') != UART_OK) {
+                kernel_panic("task A UART transmit timeout");
+            }
             mock_delay(5000);
         }
         if (mutex_unlock(OUTPUT_MUTEX_ID) != MUTEX_OK) {
@@ -53,7 +55,9 @@ void task_b(void){
             kernel_panic("task B mutex lock failed");
         }
         for (uint32_t i = 0; i < TASK_OUTPUT_BURST_SIZE; ++i) {
-            uart_putc('B');
+            if (uart_putc('B') != UART_OK) {
+                kernel_panic("task B UART transmit timeout");
+            }
             mock_delay(5000);
         }
         if (mutex_unlock(OUTPUT_MUTEX_ID) != MUTEX_OK) {

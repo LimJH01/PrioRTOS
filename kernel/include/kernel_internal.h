@@ -6,9 +6,12 @@
 #include "stack_guard.h"
 
 // 시스템 설정 상수
-#define MAX_TASKS  8
+#define MAX_TASKS  32
 #define IDLE_TASK_PRIORITY 0 // IDLE 태스크 우선순위는 최저
 #define MAX_PRIORITY  (MAX_TASKS-1)
+
+_Static_assert(MAX_TASKS <= 32, "MAX_TASKS must fit in the ready bitmap");
+
 /* context 구조체
  * - 원래: RISC-V 표준 C 호출 규약(Calling Convention)에 따라, 자발적 양보시 
  *         Callee-saved 레지스터만 보존하면 되었기에 총 13개(s0~s11, ra) 레지스터로 설계되었음.
@@ -44,7 +47,7 @@ typedef enum{
 
 typedef struct TCB{
     uint32_t *sp; // 스택 포인터
-    uint32_t priority; // 현재 유효 우선순위 (0-7)
+    uint32_t priority; // 현재 유효 우선순위 (0-31)
     uint32_t base_priority; // 태스크 기본 우선순위
     TaskState_t state; // 태스크 상태
     uint8_t *stack_base; // 스택 시작 주소
@@ -57,7 +60,7 @@ typedef struct TCB{
 
 extern TCB_t g_tcbs[MAX_TASKS]; // 태스크 장부
 extern TCB_t *g_current_tcb; // 현재 태스크 주소
-extern uint32_t g_ready_bitmap; // 비트 0-7 : 태스트 준비 여부 플래그
+extern uint32_t g_ready_bitmap; // 비트 0-31: 태스크 슬롯 준비 여부 플래그
 
 //=========================================================================//
 //=========================================================================//

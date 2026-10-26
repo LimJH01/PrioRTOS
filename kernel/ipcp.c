@@ -48,10 +48,11 @@ static bool current_task_slot(uint32_t *slot_out) {
  * 같을 때 (1U << 32)가 정의되지 않으므로 그 경계는 별도 처리한다.
  */
 static uint32_t configured_user_mask(void) {
-    if (MAX_TASKS >= 32U) {
-        return UINT32_MAX & ~(1U << IDLE_TASK_PRIORITY);
-    }
+#if MAX_TASKS >= 32U
+    return UINT32_MAX & ~(1U << IDLE_TASK_PRIORITY);
+#else
     return ((1U << MAX_TASKS) - 1U) & ~(1U << IDLE_TASK_PRIORITY);
+#endif
 }
 
 /*
