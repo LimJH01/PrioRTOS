@@ -966,15 +966,15 @@ static inline void exit_critical(void){
 
 | **[구현 완료]** | `void clint_timer_init(void)` | 입력: 없음
 
-출력: 없음 | 첫 타이머 비교값(`mtime + TIMER_INTERVAL`) 장전 및 CSR `mie.MTIE` 비트 활성화. |
+출력: 없음 | bounded High-Low-High `mtime` 읽기로 첫 타이머 비교값(`mtime + TIMER_INTERVAL`)을 장전하고 CSR `mie.MTIE` 비트를 활성화한다. 시각 읽기 재시도가 모두 실패하면 kernel panic으로 안전 정지한다. |
 
 | **[구현 완료]** | `void clint_set_next_timer(void)` | 입력: 없음
 
-출력: 없음 | `mtimecmp` 레지스터를 다음 주기 시각(`+ 10,000`)으로 재예약. |
+출력: 없음 | bounded `mtime` 읽기로 `mtimecmp` 레지스터를 다음 주기 시각(`+ TIMER_INTERVAL`)으로 재예약한다. 시각 읽기 재시도가 모두 실패하면 kernel panic으로 안전 정지한다. |
 
 | **[구현 완료]** | `uint64_t clint_get_mtime(void)` | 입력: 없음
 
-출력: 64비트 현재 시간 | `0x0200_BFF8` 하드웨어 실시간 타이머 레지스터를 원자적으로 읽어 반환. |
+출력: 64비트 현재 시간 | `0x0200_BFF8` 하드웨어 실시간 타이머를 최대 `CLINT_MTIME_READ_ATTEMPTS`회 High-Low-High 순서로 읽는다. 상위 워드가 안정되면 값을 반환하며, 재시도 상한까지 안정되지 않으면 kernel panic으로 안전 정지한다. |
 
 | **[구현 완료]** | `void clint_set_mtimecmp(uint64_t compare_value)` | 입력: 64비트 비교값
 

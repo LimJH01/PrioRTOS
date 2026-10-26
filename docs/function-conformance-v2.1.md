@@ -34,7 +34,7 @@ WCET, 스택 사용량 및 테스트 통과 여부를 뜻하지 않는다.
 | [`clint_software_interrupt_init`](../bsp/clint.c) | ✅ 충족 | §3.2 Step 3, §5.10 | MSIP 초기화와 `mie.MSIE` 설정을 수행한다. |
 | [`clint_send_software_interrupt`](../bsp/clint.c) | ✅ 충족 | §3.1 Cause 3, §5.10, §2 INV-CRI-011 | 메모리/IO 배리어 후 MSIP를 설정한다. |
 | [`clint_clear_software_interrupt`](../bsp/clint.c) | ✅ 충족 | §3.2 트랩 처리, §5.10 | MSIP를 0으로 기록해 pending 상태를 해제한다. |
-| [`clint_get_mtime`](../bsp/clint.c) | ◐ 부분 | §3.6 REQ-TMR-001, §2 INV-ATM-010, INV-ERR-008, §5.10 | High-Low-High 원자적 읽기 알고리즘은 적용했다. 다만 rollover 재시도 루프에 상한은 없어 bounded polling 불변식과의 정합성이 불명확하다. |
+| [`clint_get_mtime`](../bsp/clint.c) | ◐ 부분 | §3.6 REQ-TMR-001, §2 INV-ATM-010, INV-ERR-008, §5.10 | High-Low-High를 최대 `CLINT_MTIME_READ_ATTEMPTS`회(현재 3회) 시도한다. 상한 내 안정된 값을 얻지 못하면 함수에서 `kernel_panic()`으로 안전 정지한다. 반복 횟수는 제한했지만 MMIO 접근의 WCET는 타깃 버스 응답시간 상한에 따라 별도 계측/입증해야 한다. |
 | [`clint_set_mtimecmp`](../bsp/clint.c) | ✅ 충족 | §2 INV-ATM-010, §5.10, §6.8 | RV32에서 임시로 LOW를 최댓값으로 설정한 후 HIGH, LOW를 기록하는 갱신 순서를 사용한다. |
 | [`clint_timer_init`](../bsp/clint.c) | ❌ 미충족 | §1.1, §3.2 Step 3, §5.10, §6.8 | 명세는 10 MHz에서 1ms에 해당하는 10,000 count를 요구하지만 현재 `TIMER_INTERVAL`은 10,000,000이다. |
 | [`clint_set_next_timer`](../bsp/clint.c) | ❌ 미충족 | §1.1, §3.1 타이머 ISR, §5.10, §6.8 | 재예약 로직은 있으나 같은 잘못된 `TIMER_INTERVAL`을 사용하므로 주기가 명세와 다르다. |

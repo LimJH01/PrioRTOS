@@ -11,6 +11,7 @@
 #define CLINT_MTIME_LOW (*(volatile uint32_t *)(CLINT_BASE + 0xBFF8))
 #define CLINT_MTIME_HIGH (*(volatile uint32_t *)(CLINT_BASE + 0xBFFC))
 
+#define CLINT_MTIME_READ_ATTEMPTS 3U
 
 // 10 MHz timebase에서 1초에 해당하는 tick 수
 #define TIMER_INTERVAL   10000000ULL
