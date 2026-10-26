@@ -1,6 +1,7 @@
 #include <clint.h>
 
 void clint_software_interrupt_init(void) {
+    // 남아있는 인터럽트 요청을 지우는 것
     CLINT_MSIP = 0U;
 
     uint32_t mie;
@@ -11,7 +12,9 @@ void clint_software_interrupt_init(void) {
 
 void clint_send_software_interrupt(void) {
     // Order kernel state updates before the interrupt request reaches the hart.
+    // 순서 유지가 중요 (컴파일러가 딴짓 못하게)
     asm volatile("fence iorw, iorw" ::: "memory");
+    // Cause 3 (Software Interrupt 실행)
     CLINT_MSIP = 1U;
 }
 
