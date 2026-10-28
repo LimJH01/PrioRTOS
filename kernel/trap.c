@@ -26,11 +26,11 @@ void trap_handler(){
     } else if (mcause == 0x80000007U) {
         // Machine Timer Interrupt (MTI), top half (여기서 타이머를 갱신, 틱 처리, 직접 스케줄링 X)
         clint_set_next_timer();
-        if (uart_putc('.') != UART_OK) {
+        /* if (uart_putc('.') != UART_OK) {
             kernel_panic("UART transmit timeout in timer interrupt");
         }
 
-        sched_schedule();
+        sched_schedule(); */
     } else {
         while(1){
             asm volatile ("wfi");
