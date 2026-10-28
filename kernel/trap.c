@@ -31,6 +31,9 @@ void trap_handler(){
         }
 
         sched_schedule(); */
+
+        // 구현 예정
+        // timer_tick_step()
     } else {
         while(1){
             asm volatile ("wfi");
