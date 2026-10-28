@@ -51,7 +51,17 @@ UartResult_t uart_putc(char c) {
 // 문자열 출력 및 줄바꿈 처리
 // 포인터로 전달하는 것이 메모리에 좋다
 UartResult_t uart_puts(const char *str) {
+    if (str == 0) {
+        return UART_ERR_INVALID_ARGUMENT;
+    }
+
+    uint32_t output_bytes = 0U;
     while (*str) {
+        uint32_t char_bytes = (*str == '\n') ? 2U : 1U;
+        if (output_bytes + char_bytes > UART_PUTS_MAX_BYTES) {
+            return UART_ERR_STRING_TOO_LONG;
+        }
+
         if (*str == '\n') {
             if (uart_putc('\r') != UART_OK) {
                 return UART_ERR_TX_TIMEOUT;
@@ -60,6 +70,7 @@ UartResult_t uart_puts(const char *str) {
         if (uart_putc(*str++) != UART_OK) {
             return UART_ERR_TX_TIMEOUT;
         }
+        output_bytes += char_bytes;
     }
 
     return UART_OK;

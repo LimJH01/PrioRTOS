@@ -40,7 +40,7 @@ WCET, 스택 사용량 및 테스트 통과 여부를 뜻하지 않는다.
 | [`clint_set_next_timer`](../bsp/clint.c) | ❌ 미충족 | §1.1, §3.1 타이머 ISR, §5.10, §6.8 | 재예약 로직은 있으나 같은 잘못된 `TIMER_INTERVAL`을 사용하므로 주기가 명세와 다르다. |
 | [`uart_init`](../bsp/uart.c) | ✅ 충족 | §1.1 UART0, §5.11, §6.8 | 16550 UART의 divisor, 8-N-1, FIFO 설정을 수행한다. |
 | [`uart_putc`](../bsp/uart.c) | ✅ 충족 | §2 INV-ERR-008, §5.11 | TX 준비 비트를 `UART_TX_POLL_LIMIT` 횟수만 확인하고, 상한 초과 시 `UART_ERR_TX_TIMEOUT`을 반환한다. |
-| [`uart_puts`](../bsp/uart.c) | ✅ 충족 | §2 INV-ERR-008, §5.11 | `uart_putc()`의 오류를 즉시 호출자에게 전달하므로 문자열 출력 중 하드웨어 폴링도 제한된다. |
+| [`uart_puts`](../bsp/uart.c) | ✅ 충족 | §2 INV-ERR-008, §5.11 | CRLF 변환 후 송신량을 최대 `UART_PUTS_MAX_BYTES`(128)바이트로 제한한다. 상한 초과, NULL 입력 및 문자 전송 타임아웃을 구분된 오류로 반환한다. |
 
 ## 트랩, 패닉 및 스케줄러
 

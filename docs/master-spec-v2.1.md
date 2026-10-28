@@ -999,7 +999,7 @@ static inline void exit_critical(void){
 
 | **[구현 완료]** | `UartResult_t uart_puts(const char *str)` | 입력: str (널 종료 문자열)
 
-출력: `UART_OK` 또는 `uart_putc()`의 오류 | 문자열 끝(`\0`)까지 순회하며 `uart_putc()`를 호출하여 시리얼 송신. 문자 전송 실패 시 즉시 해당 오류를 반환한다. |
+출력: `UART_OK`, `UART_ERR_TX_TIMEOUT`, `UART_ERR_STRING_TOO_LONG` 또는 `UART_ERR_INVALID_ARGUMENT` | CRLF 변환 후 실제 송신 바이트 수가 `UART_PUTS_MAX_BYTES`(128)를 넘지 않도록 제한한다. NULL 포인터면 invalid argument, 출력 상한 초과면 string too long을 반환하며, 문자 전송 실패 시 즉시 timeout 오류를 반환한다. |
 
 ### 5.12. app/main.c (어플리케이션 진입점)
 
