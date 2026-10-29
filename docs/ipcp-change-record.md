@@ -90,10 +90,10 @@
 
 #### 최고 우선순위 태스크 선택 변경
 
-기존에는 ready bitmap의 가장 높은 set bit를 CLZ 기반으로 구해 그 인덱스를 곧바로 우선순위/태스크 번호처럼 사용했다. 이제 `sched_highest_priority_slot(task_bitmap)`이 bitmap에서 준비된 각 **슬롯**을 확인하고 각 TCB의 `priority`(유효 우선순위)를 비교한다.
+기존에는 ready bitmap의 set bit를 슬롯 순회하며 각 TCB의 `priority`(유효 우선순위)를 비교했다. 현재 `sched_highest_priority_slot(task_bitmap)`은 직접 매핑 규칙에 따라 최하위 set bit를 De Bruijn LUT로 O(1)에 추출한다.
 
 - bitmap은 task slot을 식별하는 용도로만 사용한다.
-- 더 높은 유효 우선순위(숫자가 더 작은 priority)가 우선 선택된다.
+- 최하위 set bit, 즉 숫자가 가장 작은 직접 매핑 priority가 우선 선택된다.
 - 비교 우선순위가 같으면 이미 선택된 더 작은 슬롯을 그대로 유지한다.
 - 함수 반환값은 우선순위 값이 아니라 `g_tcbs[]` 인덱스다. 준비 슬롯이 없으면 `MAX_TASKS`를 반환한다.
 

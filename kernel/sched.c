@@ -16,23 +16,29 @@ TCB_t g_tcbs[MAX_TASKS];
 TCB_t *g_current_tcb = 0;
 uint32_t g_ready_bitmap = 0;
 
-// 숫자가 작을수록 높은 우선순위인 task를 찾는다.
-uint32_t sched_highest_priority_slot(uint32_t task_bitmap) {
-    uint32_t best_slot = MAX_TASKS;
-    uint32_t best_priority = MAX_PRIORITY;
+/*
+ * 최하위 set bit(LSB)가 가장 높은 우선순위라는 직접 매핑 규칙을 이용해
+ * 준비/대기 bitmap에서 슬롯을 O(1)으로 선택한다.
+ *
+ * 0x077CB531은 32비트 De Bruijn multiplier이며, LUT는 고립된 한 비트의
+ * 인덱스를 0..31 슬롯 번호로 변환한다.
+ */
+static const uint8_t debruijn_lsb_index[32] = {
+    0U,  1U,  28U, 2U,  29U, 14U, 24U, 3U,
+    30U, 22U, 20U, 15U, 25U, 17U, 4U,  8U,
+    31U, 27U, 13U, 23U, 21U, 19U, 16U, 7U,
+    26U, 12U, 18U, 6U,  11U, 5U,  10U, 9U
+};
 
-    for (uint32_t slot = 0; slot < MAX_TASKS; ++slot) {
-        if ((task_bitmap & (1U << slot)) == 0U) {
-            continue;
-        }
-        if (best_slot == MAX_TASKS ||
-            g_tcbs[slot].priority < best_priority) {
-            best_slot = slot;
-            best_priority = g_tcbs[slot].priority;
-        }
+uint32_t sched_highest_priority_slot(uint32_t task_bitmap) {
+    if (task_bitmap == 0U) {
+        return MAX_TASKS;
     }
 
-    return best_slot;
+    uint32_t isolated_lsb = task_bitmap & (0U - task_bitmap);
+    uint32_t lut_index =
+        (isolated_lsb * 0x077CB531U) >> 27;
+    return debruijn_lsb_index[lut_index];
 }
 
 // 태스크가 while(1)을 탈출해 실수로 리턴했을 때 잡기 위한 안전 덫
