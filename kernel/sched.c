@@ -16,16 +16,17 @@ TCB_t g_tcbs[MAX_TASKS];
 TCB_t *g_current_tcb = 0;
 uint32_t g_ready_bitmap = 0;
 
+// 숫자가 작을수록 높은 우선순위인 task를 찾는다.
 uint32_t sched_highest_priority_slot(uint32_t task_bitmap) {
     uint32_t best_slot = MAX_TASKS;
-    uint32_t best_priority = 0U;
+    uint32_t best_priority = MAX_PRIORITY;
 
     for (uint32_t slot = 0; slot < MAX_TASKS; ++slot) {
         if ((task_bitmap & (1U << slot)) == 0U) {
             continue;
         }
         if (best_slot == MAX_TASKS ||
-            g_tcbs[slot].priority > best_priority) {
+            g_tcbs[slot].priority < best_priority) {
             best_slot = slot;
             best_priority = g_tcbs[slot].priority;
         }
@@ -167,7 +168,7 @@ void sched_schedule(){
     TCB_t *next = &g_tcbs[top_slot];
     if (g_current_tcb != NULL &&
         g_current_tcb->state == TASK_STATE_RUNNING &&
-        next->priority <= g_current_tcb->priority) {
+        next->priority >= g_current_tcb->priority) {
         return;
     }
 

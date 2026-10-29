@@ -71,9 +71,9 @@ CPU 주도권은 RISC-V M-Mode(Machine Mode) 권한 하에서 하드웨어 인�
             (ipcp_lock 등)     │
 +-------------------------------------------------------------------------+
 | [계층 3] 정적 파티션 태스크 계층 (Static Application Tasks)             |
-|  - Task 7 (Priority 7, Period 10ms)  : 최고 우선순위 비행 제어 루프     |
-|  - Task 6..1                         : 중위/하위 센서 수집 및 통신 루프 |
-|  - Task 0 (Priority 0, Period Inf)   : 유휴 태스크 (Idle Task, wfi 루프)|
+|  - Task 0 (Priority 0, Period 10ms)  : 최고 우선순위 비행 제어 루프     |
+|  - Task 1..30                        : 중위/하위 센서 수집 및 통신 루프 |
+|  - Task 31 (Priority 31, Period Inf) : 유휴 태스크 (Idle Task, wfi 루프)|
 +-------------------------------------------------------------------------+
 
 ```

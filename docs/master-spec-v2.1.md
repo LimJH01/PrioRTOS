@@ -220,13 +220,13 @@ IPCP 뮤텍스를 점유하여 우선순위가 승격된 태스크는 어떠한 
 
 - **선점형 고정 우선순위 (Preemptive Fixed-Priority)**:
 
-- 우선순위 0(Idle 전용)부터 31(최고 우선순위)까지 총 32개의 고유 레벨을 운용하며, 1 Priority = 1 Task 원칙을 적용한다.
-- 숫자가 클수록 높은 우선순위를 가지며(MSB 우선 체계), 비선점 임계 구역을 제외한 전 구간에서 상위 우선순위 태스크가 준비(Ready) 상태로 전이되면 선점을 실행한다.
+- 우선순위 0(최고 우선순위)부터 31(Idle 전용 최저 우선순위)까지 총 32개의 고유 레벨을 운용하며, 1 Priority = 1 Task 원칙을 적용한다.
+- 숫자가 작을수록 높은 우선순위를 가지며, 비선점 임계 구역을 제외한 전 구간에서 상위 우선순위 태스크가 준비(Ready) 상태로 전이되면 선점을 실행한다.
 - **우선순위-슬롯 분리 및 간접 매핑(Indirect Mapping)**: `g_ready_bitmap`의 각 비트 $p$는 태스크 슬롯 번호가 아닌 현재 활성화된 우선순위 레벨($p$)을 나타낸다. IPCP 락 획득 등으로 인한 동적 우선순위 승격 시에도 TCB 데이터 복제를 방지하기 위해 32바이트 정적 간접 매핑 테이블(`g_prio_to_slot[32]`)을 운용하여 우선순위 $p$로부터 실제 TCB 슬롯 인덱스를 $O(1)$로 역참조한다.
 - **De Bruijn MSB** $O(1)$ **간접 매핑 스케줄러 (REQ-SCH-001)**:
 
 - 분기문(Branch)과 가변 루프를 일절 배제한 엄격한 상수 시간($O(1)$) 산출 시퀀스를 따른다.
-- **1단계 (Bit Smearing)**: `g_ready_bitmap`에서 최상위 세트 비트(MSB, 최고 우선순위) 아래의 모든 하위 비트를 1로 전파한다.
+- **1단계 (우선순위 탐색)**: `g_ready_bitmap`의 준비 슬롯을 순회하며 TCB의 유효 priority 숫자가 가장 작은 태스크를 찾는다.
 
 $\begin{aligned}
 
@@ -243,7 +243,7 @@ b_4 &= b_3 \mid (b_3 \gg 8) \\
 \text{smear} &= b_4 \mid (b_4 \gg 16)
 
 \end{aligned}$
-- **2단계 (MSB 고립)**: 전파된 마스크에서 우측으로 1비트 시프트한 값을 감산하여 최고 우선순위 1비트만 $2^{\text{prio}}$ 형태의 $2$의 거듭제곱 값($v$)으로 고립시킨다.
+- **2단계 (최고 우선순위 확정)**: 후보 중 숫자가 가장 작은 priority를 가진 슬롯을 선택한다.
 
 $v = \text{smear} - (\text{smear} \gg 1)$
 - **3단계 (De Bruijn 곱셈 해싱 및 인덱스 산출)**: 고립된 비트 $v$에 32비트 De Bruijn 승수(`0x077CB531U`)를 곱하고 상위 5비트를 추출하여 32바이트 룩업 테이블(`DeBruijn_LUT`)로부터 최고 우선순위 번호를 획득한다.
@@ -256,7 +256,7 @@ $\text{highest\_prio} = \text{DeBruijn\_LUT}[\text{index}]$
 $\text{slot} = \text{g\_prio\_to\_slot}[\text{highest\_prio}]$
 
 $\text{g\_current\_tcb} = \&\text{g\_tcbs}[\text{slot}]$
-- Idle 태스크(우선순위 0)가 항시 1로 상주하므로 비트맵은 0이 될 수 없으며, 준비 상태 태스크 수에 관계없이 **14 ~ 18 CPU 사이클 이내에 결정론적으로 대상 태스크를 확정**한다.
+- Idle 태스크(우선순위 31)가 항시 1로 상주하므로 비트맵은 0이 될 수 없으며, 준비 상태 태스크 수에 관계없이 결정론적으로 대상 태스크를 확정한다.
 - **이원화된 인터럽트 처리 (Top-Half / Bottom-Half)**:
 
 - **타이머 ISR (Cause 7, Top-Half)**:
@@ -270,7 +270,7 @@ $\text{g\_current\_tcb} = \&\text{g\_tcbs}[\text{slot}]$
 - CLINT `MSIP` 비트를 0으로 즉시 클리어한다.
 - 현재 태스크 스택에 128바이트 트랩 문맥을 보존하고 TCB 오프셋 0x00에 `sp`를 갱신한다.
 - 스택 하단 16바이트 카나리 가드 워드(`0x5A5A5A5A` $\times 4$)의 훼손 여부를 검증한다.
-- REQ-SCH-001 De Bruijn MSB 및 간접 매핑 알고리즘(1~4단계)을 실행하여 최고 우선순위 태스크 슬롯을 확정하고 `g_current_tcb`를 교체한다.
+- REQ-SCH-001 ready 슬롯 순회와 TCB priority 비교로 최고 우선순위 태스크 슬롯을 확정하고 `g_current_tcb`를 교체한다.
 - 교체된 태스크의 스택에서 레지스터 32단어(128 Bytes)를 복원한 뒤 `mret`을 실행하여 태스크 제어권을 전환한다.
 - **32개 우선순위 레벨(0 ~ 31) 영역 분할 설계 (REQ-SCH-002)**:
 
@@ -401,7 +401,7 @@ $\text{g\_current\_tcb} = \&\text{g\_tcbs}[\text{slot}]$
 - 동작 명세: 실행 가능한 응용 태스크가 없을 때 CPU 저전력 대기를 수행한다.
 - 실행 시퀀스:
 
-1. 우선순위 0(슬롯 0)으로 고정 등록되며 준비 비트맵(`g_ready_bitmap` bit 0)에 상주한다.
+1. 우선순위 31(슬롯 31)으로 고정 등록되며 준비 비트맵(`g_ready_bitmap` bit 31)에 상주한다.
 2. 본체는 `while(1) { __asm__ volatile("wfi"); }` 무한 루프로 동작한다.
 - 제약 사항: 유휴 태스크 내부에서 `task_sleep_ticks`, `mutex_lock`, `semaphore_wait` 호출을 금지한다.
 - **REQ-TSK-005 (커널 시동 - `priortos_start`)**:
@@ -426,8 +426,8 @@ $\text{g\_current\_tcb} = \&\text{g\_tcbs}[\text{slot}]$
 - 초기화 규격:
 
 - `locked = false`, `owner_slot = NO_TASK` (미점유 상태)
-- `ceiling` = 공유 태스크들의 `base_priority` 최댓값 ($1 \sim 31$)
-- 제약 사항: 해당 뮤텍스를 공유하는 모든 태스크의 기본 우선순위 최댓값 이상으로 `ceiling`이 설정되었는지 초기화 시점에 검증한다. 대기 큐는 할당하지 않는다.
+- `ceiling` = 공유 태스크들의 `base_priority` 최솟값 ($0 \sim 30$)
+- 제약 사항: 해당 뮤텍스를 공유하는 모든 태스크의 기본 우선순위 최솟값과 일치하도록 `ceiling`을 설정한다. 대기 큐는 할당하지 않는다.
 - **REQ-SYN-002 (뮤텍스 획득 - `mutex_lock`)**:
 
 - 동작 명세: 천장 우선순위 승격 및 간접 매핑 이전을 통해 락을 획득한다.
@@ -451,7 +451,7 @@ $\text{g\_current\_tcb} = \&\text{g\_tcbs}[\text{slot}]$
 1. 임계 구역에 진입한다 (`enter_critical`).
 2. 호출 태스크가 현재 소유자(`owner_slot == current_slot`)가 아니면 `kernel_panic("unlock non-owned mutex")`을 일으킨다.
 3. `locked = false`로 해제하고 `owner_slot = NO_TASK`로 설정한다.
-4. `g_ready_bitmap`에서 승격되었던 `ceiling` 비트를 제거하고, 원래 우선순위(`base_priority`, 또는 잔여 보유 뮤텍스 중 최대 천장값) 비트를 세트한다.
+4. `g_ready_bitmap`에서 승격되었던 `ceiling` 비트를 제거하고, 원래 우선순위(`base_priority`, 또는 잔여 보유 뮤텍스 중 최소 천장값) 비트를 세트한다.
 5. 간접 매핑 테이블을 원복(`g_prio_to_slot[restored_prio] = current_slot`)하고 `g_current_tcb->priority = restored_prio`로 복원한다.
 6. 우선순위 강등에 따른 스케줄링 재평가를 위해 `CLINT_MSIP = 1`을 기록한다.
 7. 임계 구역을 탈출한다 (`exit_critical`).
@@ -770,7 +770,7 @@ tasks.o
 
 | **[구현 완료]** | `void idle_task(void)` | 입력: 없음
 
-출력: 없음 (무한 루프) | 우선순위 0 유휴 태스크 본체. `while(1) { __asm__ volatile("wfi"); }` 저전력 대기 (REQ-TSK-004). |
+출력: 없음 (무한 루프) | 우선순위 31 유휴 태스크 본체. `while(1) { __asm__ volatile("wfi"); }` 저전력 대기 (REQ-TSK-004). |
 
 | **[구현 완료]** | `uint32_t sched_highest_priority_slot(uint32_t task_bitmap)` | 입력: 준비 상태 우선순위 비트마스크
 
@@ -1311,7 +1311,7 @@ typedef struct {
     uint32_t owner_slot;   /* 0x04 (4B): locked일 때 소유 태스크의 고정 슬롯 (0~31) */
     uint32_t user_slots;   /* 0x08 (4B): 이 mutex를 사용할 수 있도록 등록된 슬롯 비트마스크 */
     uint32_t waiters;      /* 0x0C (4B): 천장 장벽에 의해 대기 중인 태스크 슬롯 비트마스크 */
-    uint32_t ceiling;      /* 0x10 (4B): 사용자들의 base_priority 최댓값 */
+    uint32_t ceiling;      /* 0x10 (4B): 사용자들의 base_priority 최솟값 */
 } IpcpMutex_t;
 ```
 
@@ -1337,7 +1337,7 @@ $\text{OS\_MAX\_MUTEXES} \times 20\text{ B}$
 `uint8_t[1024]`
 `kernel/sched.c`
 $1,024\text{ B}$ 고정
-우선순위 0 유휴(Idle) 태스크 전용 정적 스택
+우선순위 31 유휴(Idle) 태스크 전용 정적 스택
 
 **g_tcbs[OS_MAX_TASKS]**
 `TCB_t[]`
@@ -1671,7 +1671,7 @@ IPCP 동결 플래그 (패딩 포함)
 **g_ready_bitmap**
 `uint32_t`
 `bit p` = 우선순위 $p$가 READY
-De Bruijn MSB 연산으로 최고 우선순위 $p$를 $O(1)$ 추출
+ready 슬롯 순회로 숫자가 가장 작은 최고 우선순위 $p$를 추출
 
 **g_prio_to_slot[32]**
 `uint8_t[32]`
@@ -1698,9 +1698,9 @@ De Bruijn MSB 연산으로 최고 우선순위 $p$를 $O(1)$ 추출
 `bit i` = 슬롯 $i$가 해당 뮤텍스 대기 중
 unlock 시 획득 가능한 대기 태스크를 찾아 소유권 위임
 
-- 슬롯 0(우선순위 0)은 `idle_task` 전용으로 예약된다. IPCP 뮤텍스의 사용자 마스크에서는 슬롯 0을 허용하지 않는다.
+- 슬롯 31(우선순위 31)은 `idle_task` 전용으로 예약된다. IPCP 뮤텍스의 사용자 마스크에서는 슬롯 31을 허용하지 않는다.
 - 기준 빌드의 응용 태스크 출력 뮤텍스 사용자는 슬롯 1과 2이므로, `user_slots` 초기값은 `(1U << 1) | (1U << 2)` = `0x00000006`이다.
-- `g_ready_bitmap`은 전역 초기값이 0이며, `tasks_init()`에서 우선순위 1과 2를 등록한 직후 `0x00000006`, `priortos_start()`에서 idle 태스크(우선순위 0)를 등록한 후 `0x00000007`이 된다.
+- `g_ready_bitmap`은 전역 초기값이 0이며, `tasks_init()`에서 우선순위 1과 2를 등록한 직후 `0x00000006`, `priortos_start()`에서 idle 태스크(우선순위 31)를 등록한 후 `0x80000006`이 된다.
 
 ### 6.8. 메모리 매핑 I/O (MMIO) 주소 명세
 

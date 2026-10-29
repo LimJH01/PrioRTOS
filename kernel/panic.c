@@ -3,6 +3,8 @@
 
 __attribute__((noreturn)) void kernel_panic(const char *msg) {
     // 1. 모든 인터럽트 비활성화 (추가 오작동 차단)
+    // 즉, 가능할 수 있는 오류 상황이 더 이상 일어나지 않게 
+    // 인터럽트를 영구차단한다.
     asm volatile("csrci mstatus, 8"); // mstatus.MIE = 0
 
     // 2. UART로 치명적 에러 메시지 출력

@@ -69,14 +69,14 @@ WCET, 스택 사용량 및 테스트 통과 여부를 뜻하지 않는다.
 |---|---|---|---|
 | [`current_task_slot`](../kernel/ipcp.c) | ✅ 충족 | §5.5 | 현재 TCB 포인터 및 RUNNING 상태로 슬롯을 식별한다. 최대 태스크 수에 제한된 선형 검색이다. |
 | [`configured_user_mask`](../kernel/ipcp.c) | ✅ 충족 | §5.5, §6.7 | 유효 슬롯 마스크를 만들고 Idle 슬롯을 제외하며, 32비트 시프트 경계를 별도 처리한다. |
-| [`system_ceiling`](../kernel/ipcp.c) | ◐ 부분 | §3.4 REQ-SYN-002, §5.5 | 다른 태스크가 소유한 mutex ceiling의 최댓값 계산은 수행한다. 다만 반복 검색이며 명세의 고정 실행시간/우선순위 매핑 경로와 통합되어 있지 않다. |
+| [`system_ceiling`](../kernel/ipcp.c) | ◐ 부분 | §3.4 REQ-SYN-002, §5.5 | 다른 태스크가 소유한 mutex ceiling의 최솟값 계산은 수행한다. 다만 반복 검색이며 명세의 고정 실행시간/우선순위 매핑 경로와 통합되어 있지 않다. |
 | [`refresh_effective_priority`](../kernel/ipcp.c) | ◐ 부분 | §2 INV-MUT-009, §3.4 REQ-SYN-002–003, §5.5 | 보유 mutex 기준 유효 우선순위를 재계산한다. ready bitmap과 `g_prio_to_slot`을 함께 원자적으로 갱신하지 않는다. |
 | [`can_acquire`](../kernel/ipcp.c) | ◐ 부분 | §3.4 REQ-SYN-002, §5.5 | 사용자·소유 여부와 system ceiling은 검사한다. 현재의 실패 처리/대기 동작은 SRS에 정의된 경합 시 패닉 규칙과 다르며, 상세 정책 간 차이도 있다. |
 | [`dispatch_eligible_waiters`](../kernel/ipcp.c) | ◐ 부분 | §2 INV-MUT-009, §3.4 REQ-SYN-002–003, §5.5 | 대기자 중 획득 가능한 태스크를 선택해 handoff한다. SRS의 무경합 IPCP 경합 처리 및 O(1) 관련 제약과 다르게 정적 상한 반복 탐색을 수행한다. |
 | [`mutex_configure`](../kernel/ipcp.c) | ✅ 충족 | §3.4 REQ-SYN-001, §5.5 | 고정 ID/사용자 등록, 사용자 기본 우선순위로 ceiling 계산, 중복 설정 거부 및 시작 후 설정 동결을 수행한다. |
 | [`mutex_lock`](../kernel/ipcp.c) | ❌ 미충족 | §2 INV-MUT-009, §3.4 REQ-SYN-002, §5.5 | 획득 불가 시 현재 태스크를 Blocked로 만들고 대기한다. SRS의 mutex contention 패닉 규칙과 다르며, 우선순위 승격에 따른 ready bitmap/간접 매핑 갱신도 없다. LLD §5.5에는 waiter/handoff 동작이 별도로 기재되어 있어 명세 내부에도 정책 차이가 있다. |
 | [`mutex_unlock`](../kernel/ipcp.c) | ◐ 부분 | §2 INV-MUT-009, §3.4 REQ-SYN-003, §5.5 | 소유권 확인, 우선순위 재계산, 대기자 handoff 및 MSIP 요청은 수행한다. 비소유자 호출은 패닉이 아니라 오류 반환이며, ready bitmap/매핑 복원은 없다. |
-| [`ipcp_validate_configuration`](../kernel/ipcp.c) | ◐ 부분 | §3.3 REQ-TSK-005, §3.4 REQ-SYN-001, §5.5 | 사용자 마스크와 사용 태스크 등록 여부를 확인한다. 설정된 ceiling이 사용자들의 base priority 최댓값 이상인지 시작 시 재검증하지 않는다. |
+| [`ipcp_validate_configuration`](../kernel/ipcp.c) | ◐ 부분 | §3.3 REQ-TSK-005, §3.4 REQ-SYN-001, §5.5 | 사용자 마스크와 사용 태스크 등록 여부를 확인한다. 설정된 ceiling이 사용자들의 base priority 최솟값과 일치하는지는 시작 시 재검증하지 않는다. |
 | [`ipcp_scheduler_started`](../kernel/ipcp.c) | ✅ 충족 | §3.3 REQ-TSK-005, §5.5 | 스케줄러 시작 후 mutex 설정을 동결한다. |
 | [`semaphore_init`](../kernel/semaphore.c) | ✅ 충족 | §3.4 REQ-SYN-004–005, §5.7 | count와 waiter bitmap을 초기화한다. |
 | [`semaphore_wait`](../kernel/semaphore.c) | ❌ 미충족 | §2 INV-SYN-012, §3.4 REQ-SYN-004, §5.7 | 현재 태스크가 mutex를 보유해 우선순위가 승격된 상태인지 검사하지 않는다. mutex 보유 상태의 semaphore wait를 차단하거나 패닉하지 않아 INV-SYN-012를 보장하지 못한다. |

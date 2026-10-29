@@ -7,7 +7,7 @@
 
 // 시스템 설정 상수
 #define MAX_TASKS  32
-#define IDLE_TASK_PRIORITY 0 // IDLE 태스크 우선순위는 최저
+#define IDLE_TASK_PRIORITY (MAX_TASKS-1) // IDLE 태스크 우선순위는 최저
 #define MAX_PRIORITY  (MAX_TASKS-1)
 
 _Static_assert(MAX_TASKS <= 32, "MAX_TASKS must fit in the ready bitmap");

@@ -18,7 +18,7 @@
            └─ 기존 trap/context 경로가 다음 READY 태스크 실행
 
 태스크가 semaphore_signal() 호출
-  ├─ 기다리는 태스크가 있으면 가장 높은 우선순위 대기자를 READY 처리
+  ├─ 기다리는 태스크가 있으면 숫자가 가장 작은(가장 높은) 우선순위 대기자를 READY 처리
   └─ 대기자가 없으면 카운트를 하나 증가
        └─ MSIP로 스케줄러에 재선택 요청
 ```
@@ -112,6 +112,6 @@ QEMU 실행은 기능 확인이지 실기기 timing/WCET 검증은 아니다.
 
 ## 다음 작업
 
-1. 슬롯 0에 idle task를 추가하고 ready bitmap이 비었을 때 idle로 전환한다.
+1. 슬롯 31에 idle task를 추가하고 ready bitmap이 비었을 때 idle로 전환한다.
 2. 호스트 단위 테스트 또는 QEMU 테스트로 semaphore count, block/wakeup, 잘못된 호출을 검증한다.
 3. IPCP의 설정 경계, system-ceiling 차단, nested lock, boost 복구 및 동순위 비선점 규칙을 자동 테스트한다.

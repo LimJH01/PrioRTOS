@@ -215,7 +215,7 @@ IPCP는 고정 사용자 설정, ceiling 및 유효 우선순위 선택 경로�
 
 | 순서 | 다음 작업 | 구현 범위 | 완료 기준 |
 |---|---|---|---|
-| 1 | idle 동작과 빈 ready set | 슬롯 0 idle 태스크를 등록하고 `sched_schedule()`의 빈 ready set 처리를 정의한다. | 모든 응용 태스크가 BLOCKED여도 커널이 panic하지 않고 idle로 실행된다. |
+| 1 | idle 동작과 빈 ready set | 슬롯 31 idle 태스크를 등록하고 `sched_schedule()`의 빈 ready set 처리를 정의한다. | 모든 응용 태스크가 BLOCKED여도 커널이 panic하지 않고 idle로 실행된다. |
 | 2 | 스케줄러/세마포어 테스트 | 최고 우선순위 선택, semaphore count/handoff, block/wakeup, MSIP/timer 통합 테스트를 작성한다. | 두 태스크 교대, 우선순위 대기자 선택, 오류 입력의 반환값과 상태 불변식이 자동 검증된다. |
 | 3 | IPCP 테스트 | 정적 설정, system-ceiling 차단, 중첩 lock, boost 복구, handoff 및 동순위 스케줄링을 테스트한다. | 상태·소유권·유효 우선순위·ready bitmap과 API 결과가 기대값과 일치한다. |
 | 4 | CBMC 및 시간 측정 | 검증 하네스를 먼저 작성하고, 실제 툴체인/ISA에서 생성 코드와 타이머 주기를 확인한다. 이후 대상 기반 WCET/지연 측정을 수행한다. | 검증 범위와 가정, 측정 환경, 결과가 재현 가능하게 기록된다. |

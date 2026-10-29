@@ -15,7 +15,7 @@ typedef struct {
     uint32_t owner_slot;  /* locked일 때 소유 태스크의 고정 슬롯 */
     uint32_t user_slots;  /* 이 mutex를 사용할 수 있도록 등록된 슬롯 */
     uint32_t waiters;     /* 이 mutex를 기다리며 BLOCKED인 슬롯 */
-    uint32_t ceiling;     /* 사용자들의 base_priority 최댓값 */
+    uint32_t ceiling;     /* 사용자들의 base_priority 최솟값 */
 } IpcpMutex_t;
 
 static IpcpMutex_t mutexes[MAX_MUTEXES];
@@ -44,7 +44,7 @@ static bool current_task_slot(uint32_t *slot_out) {
 
 /*
  * mutex 사용자로 허용 가능한 슬롯 비트마스크를 만든다.
- * 슬롯 0은 idle 전용이므로 제외한다. MAX_TASKS가 uint32_t의 비트 수와
+ * IDLE_TASK_PRIORITY 슬롯은 idle 전용이므로 제외한다. MAX_TASKS가 uint32_t의 비트 수와
  * 같을 때 (1U << 32)가 정의되지 않으므로 그 경계는 별도 처리한다.
  */
 static uint32_t configured_user_mask(void) {
@@ -68,7 +68,7 @@ static uint32_t system_ceiling(uint32_t requesting_slot) {
         const IpcpMutex_t *mutex = &mutexes[id];
         if (mutex->configured && mutex->locked &&
             mutex->owner_slot != requesting_slot &&
-            (!has_ceiling || mutex->ceiling > ceiling)) {
+            (!has_ceiling || mutex->ceiling < ceiling)) {
             ceiling = mutex->ceiling;
             has_ceiling = true;
         }
@@ -79,8 +79,9 @@ static uint32_t system_ceiling(uint32_t requesting_slot) {
 
 /*
  * 태스크가 현재 보유한 모든 mutex의 ceiling을 다시 반영한다.
- * base priority를 항상 하한으로 두므로 ceiling이 낮은 mutex를 해제해도
- * 더 높은 ceiling의 다른 mutex를 보유 중이면 priority가 그 수준을 유지한다.
+ * base priority를 항상 최저 우선순위 경계로 두므로 ceiling이 낮은 mutex를
+ * 해제해도 더 높은 ceiling의 다른 mutex를 보유 중이면 priority가 그 수준을
+ * 유지한다. (숫자가 작을수록 높은 우선순위)
  */
 static void refresh_effective_priority(uint32_t slot) {
     uint32_t priority = g_tcbs[slot].base_priority;
@@ -88,7 +89,7 @@ static void refresh_effective_priority(uint32_t slot) {
         const IpcpMutex_t *mutex = &mutexes[id];
         if (mutex->configured && mutex->locked &&
             mutex->owner_slot == slot &&
-            mutex->ceiling > priority) {
+            mutex->ceiling < priority) {
             priority = mutex->ceiling;
         }
     }
@@ -98,7 +99,7 @@ static void refresh_effective_priority(uint32_t slot) {
 /*
  * IPCP admission 조건을 검사한다.
  * 새 자원은 비어 있고 호출 태스크가 등록된 사용자여야 하며,
- * 호출 태스크의 유효 우선순위는 다른 태스크의 system ceiling보다 커야 한다.
+ * 호출 태스크의 유효 우선순위는 다른 태스크의 system ceiling보다 높아야 한다.
  * 같은 우선순위는 허용하지 않는 strict-greater 비교다.
  */
 static bool can_acquire(uint32_t mutex_id, uint32_t slot) {
@@ -110,7 +111,7 @@ static bool can_acquire(uint32_t mutex_id, uint32_t slot) {
 
     uint32_t ceiling = system_ceiling(slot);
     return ceiling == UINT32_MAX ||
-           g_tcbs[slot].priority > ceiling;
+           g_tcbs[slot].priority < ceiling;
 }
 
 /*
@@ -130,7 +131,10 @@ static void dispatch_eligible_waiters(void) {
                 continue;
             }
 
-            for (uint32_t slot = 1; slot < MAX_TASKS; ++slot) {
+            for (uint32_t slot = 0; slot < MAX_TASKS; ++slot) {
+                if (slot == IDLE_TASK_PRIORITY) {
+                    continue;
+                }
                 uint32_t waiter_bit = 1U << slot;
                 if ((mutex->waiters & waiter_bit) == 0U ||
                     g_tcbs[slot].state != TASK_STATE_BLOCKED ||
@@ -138,9 +142,9 @@ static void dispatch_eligible_waiters(void) {
                     continue;
                 }
 
-                /* 유효 priority 우선, 동률이면 결정적인 슬롯 순서로 선택. */
+                /* 숫자가 작은 유효 priority 우선, 동률이면 슬롯 순서로 선택. */
                 if (selected_slot == MAX_TASKS ||
-                    g_tcbs[slot].priority > g_tcbs[selected_slot].priority ||
+                    g_tcbs[slot].priority < g_tcbs[selected_slot].priority ||
                     (g_tcbs[slot].priority == g_tcbs[selected_slot].priority &&
                      slot < selected_slot)) {
                     selected_mutex = id;
@@ -168,7 +172,7 @@ static void dispatch_eligible_waiters(void) {
 
 /*
  * 초기화 구간에서 고정 mutex ID와 허용 사용자 슬롯을 등록한다.
- * ceiling은 사용 태스크들의 기본 우선순위 최댓값으로 계산하며,
+ * ceiling은 사용 태스크들의 기본 우선순위 최솟값으로 계산하며,
  * 모든 검사 성공 뒤 마지막에 configured를 세워 부분 설정을 노출하지 않는다.
  */
 MutexResult_t mutex_configure(uint32_t mutex_id, uint32_t user_slots) {
@@ -193,8 +197,11 @@ MutexResult_t mutex_configure(uint32_t mutex_id, uint32_t user_slots) {
         return MUTEX_ERR_ALREADY_CONFIGURED;
     }
 
-    uint32_t ceiling = 0U;
-    for (uint32_t slot = 1; slot < MAX_TASKS; ++slot) {
+    uint32_t ceiling = MAX_PRIORITY;
+    for (uint32_t slot = 0; slot < MAX_TASKS; ++slot) {
+        if (slot == IDLE_TASK_PRIORITY) {
+            continue;
+        }
         if ((user_slots & (1U << slot)) == 0U) {
             continue;
         }
@@ -202,7 +209,7 @@ MutexResult_t mutex_configure(uint32_t mutex_id, uint32_t user_slots) {
             sched_irq_restore(saved_mstatus);
             return MUTEX_ERR_INVALID_USERS;
         }
-        if (g_tcbs[slot].base_priority > ceiling) {
+        if (g_tcbs[slot].base_priority < ceiling) {
             ceiling = g_tcbs[slot].base_priority;
         }
     }
@@ -341,7 +348,10 @@ bool ipcp_validate_configuration(void) {
             sched_irq_restore(saved_mstatus);
             return false;
         }
-        for (uint32_t slot = 1; slot < MAX_TASKS; ++slot) {
+        for (uint32_t slot = 0; slot < MAX_TASKS; ++slot) {
+            if (slot == IDLE_TASK_PRIORITY) {
+                continue;
+            }
             if ((mutex->user_slots & (1U << slot)) != 0U &&
                 g_tcbs[slot].state == TASK_STATE_UNUSED) {
                 sched_irq_restore(saved_mstatus);
