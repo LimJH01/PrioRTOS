@@ -41,11 +41,9 @@ uint32_t sched_highest_priority_slot(uint32_t task_bitmap) {
     return debruijn_lsb_index[lut_index];
 }
 
-// 태스크가 while(1)을 탈출해 실수로 리턴했을 때 잡기 위한 안전 덫
-static void task_exit_trap(void) {
-    while (1) {
-        asm volatile ("wfi");
-    }
+// 태스크가 while(1)을 탈출했을 때 kernel_panic 발생
+__attribute__((noreturn)) static void task_exit_trap(void) {
+    kernel_panic("task returned");
 }
 
 __attribute__((noreturn)) void stack_overflow_panic(void) {
