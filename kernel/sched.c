@@ -180,6 +180,11 @@ void sched_schedule(){
     }
     g_current_tcb = next;
     g_current_tcb->state = TASK_STATE_RUNNING;
+
+    // 선택된 최초 태스크는 준비 비트맵에서 비트를 제거하고 Running으로 전이
+    g_ready_bitmap &= ~(1U << top_slot);
+
+    
 }
 
 uint32_t sched_irq_save(void) {
