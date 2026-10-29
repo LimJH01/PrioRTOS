@@ -58,7 +58,7 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
         return TASK_CREATE_ERR_INVALID_PRIO;
     }
     if (g_tcbs[prio].state != TASK_STATE_UNUSED){
-        return TASK_CREATE_ERR_PRIO_IN_USE;
+        kernel_panic("duplicate priority");
     }
     if (task_func == 0 || stack == 0){
         return TASK_CREATE_ERR_NULL_PTR;
