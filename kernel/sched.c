@@ -130,31 +130,29 @@ void idle_task(void){
     }
 }
 
-void priortos_start(void){
-
+void priortos_start(void) {
+    // 1. 최하위 우선순위 31번에 IDLE 태스크 등록 (비트맵 31번 비트 영구 세트)
     TaskCreateResult_t result = 
-    task_create(IDLE_TASK_PRIORITY, idle_task, idle_stack, sizeof(idle_stack));
+        task_create(IDLE_TASK_PRIORITY, idle_task, idle_stack, sizeof(idle_stack));
 
-    if (result != TASK_CREATE_OK){
-        kernel_panic("scheduler started without ready tasks");
-
-    }
-    if (!ipcp_validate_configuration()) {
-        kernel_panic("invalid IPCP configuration");
-    }
-    if (g_ready_bitmap == 0){
-        kernel_panic("scheduler started without ready tasks");
+    if (result != TASK_CREATE_OK) {
+        kernel_panic("failed to create idle task");
     }
 
+    // 2. 준비 비트맵에서 가장 우선순위가 높은(번호가 가장 작은) 태스크 슬롯 선정 (LSB 드 브루인)
     uint32_t top_prio = sched_highest_priority_slot(g_ready_bitmap);
     if (top_prio >= MAX_TASKS) {
         kernel_panic("scheduler has no ready tasks");
     }
-    // []가 있으면 주소가 아닌 내용물, 따라서 &를 붙여야 한다.
+
+    // 3. 선택된 최초 태스크는 준비 비트맵에서 비트를 제거하고 Running으로 전이
+    g_ready_bitmap &= ~(1U << top_prio);
+
+    // 4. 직접 매핑으로 TCB 확정
     g_current_tcb = &g_tcbs[top_prio];
     g_current_tcb->state = TASK_STATE_RUNNING;
-    ipcp_scheduler_started();
 
+    // 5. 최초 태스크 문맥 복원 및 전역 인터럽트 활성화 (mret)
     prio_context_first_switch(g_current_tcb);
 }
 
