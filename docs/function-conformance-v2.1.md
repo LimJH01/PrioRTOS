@@ -1,5 +1,7 @@
 # 함수별 Final Master Baseline v2.2.4 적합성 대조표
 
+> 이 문서는 [구현 계약 및 적합성 추적 기준선 v2.2.4](./implementation-contract-v2.2.4.md)의 현재 소스 판정표다. Master 문서에서 제거된 기존 Part 5의 함수별 구현 정보는 이 문서에서만 관리한다. 표에 남아 있는 `§5.x` 표기는 과거 함수 계약에 대한 추적용 역사 참조이며, 현재 기준은 Master의 `REQ-*`/`INV-*`와 구현 계약 문서다.
+
 이 문서는 현재 구현의 모든 함수 및 어셈블리 진입점을
 [Final Master Baseline v2.2.4](./master-spec-v2.2.4.md)와 대조한다.
 명세 위치는 해당 문서의 절 번호 및 REQ/INV ID로 표시한다.

@@ -12,6 +12,7 @@
 # 프로젝트 문서
 
 - [통합 아키텍처 및 상세 설계 명세서 v2.2.4](docs/master-spec-v2.2.4.md): Frozen Master Baseline
+- [구현 계약 및 적합성 추적 기준선 v2.2.4](docs/implementation-contract-v2.2.4.md): 함수별 구현 계약과 Master 분리 기준
 
 - [요구사항 초안](docs/requirements.md): 목표 범위, 요구사항 ID, 검증 기준 및 현재 구현 기준선
 - [설계 결정 기록](docs/design-decisions.md): 확정이 필요한 플랫폼·시간·IPCP·오류 정책
