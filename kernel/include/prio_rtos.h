@@ -15,9 +15,14 @@ typedef enum {
     TASK_CREATE_ERR_ADDRESS_OVERFLOW = -5
 } TaskCreateResult_t;
 
+/*
+ * 정적 semaphore 상태.
+ * count는 사용 가능한 자원 수, waiters는 대기 중인 태스크 ID bitmap이다.
+ * 두 필드 모두 32비트이므로 Master Spec에서 총 8바이트로 고정된다.
+ */
 typedef struct {
-    uint32_t count;
-    uint32_t waiters;
+    uint32_t count;   // 현재 사용 가능한 semaphore 자원 수
+    uint32_t waiters; // 대기 태스크 bitmap: bit n == task_id n
 } Semaphore_t;
 
 typedef enum {

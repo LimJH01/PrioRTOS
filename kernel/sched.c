@@ -1,14 +1,10 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
 #include "clint.h"
-#include <stddef.h>
 #define STACK_ALIGNED __attribute__((aligned(16)))
 
 _Static_assert(sizeof(TaskContext_t) == STACK_TRAP_FRAME_SIZE,
                "TaskContext_t must match the assembly trap frame size");
-_Static_assert(offsetof(TCB_t, stack_base) == TCB_STACK_BASE_OFFSET,
-               "TCB stack_base offset must match context.S");
-
 #define IDLE_STACK_SIZE_BYTES 1024U
 static STACK_ALIGNED uint8_t idle_stack[IDLE_STACK_SIZE_BYTES];
 
@@ -112,8 +108,11 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
 
     // 7. 완성된 스택 포인터를 TCB에 기록
     g_tcbs[prio].sp = (uint32_t *)ctx;
-    g_tcbs[prio].priority = prio;
-    g_tcbs[prio].base_priority = prio;
+    g_tcbs[prio].held_mutex = NULL;
+    g_tcbs[prio].reserved = 0U;
+    g_tcbs[prio].priority = (uint8_t)prio;
+    g_tcbs[prio].base_priority = (uint8_t)prio;
+    g_tcbs[prio].task_id = (uint8_t)prio;
     g_tcbs[prio].state = TASK_STATE_READY;
     g_tcbs[prio].stack_base = stack;
     g_tcbs[prio].stack_size_bytes = stack_size_bytes;

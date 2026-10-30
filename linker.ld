@@ -27,7 +27,9 @@ SECTIONS
         . = ALIGN(16);
         __bss_end = .;
         _stack_bottom = .;
-        . += 0x1000;
-        _stack_top = .;
+        kernel_sys_stack = .;
+        . += 0x400;
+        kernel_sys_stack_top = .;
+        _stack_top = kernel_sys_stack_top;
     } > RAM
 }

@@ -13,8 +13,8 @@
 
 #define CLINT_MTIME_READ_ATTEMPTS 3U
 
-// 10 MHz timebase에서 1초에 해당하는 tick 수
-#define TIMER_INTERVAL   10000000ULL
+// 10 MHz timebase에서 1 ms에 해당하는 tick 수
+#define TIMER_INTERVAL   10000ULL
 
 void clint_timer_init(void);
 void clint_software_interrupt_init(void);
