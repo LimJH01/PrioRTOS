@@ -1,7 +1,7 @@
-# 함수별 Final Master Baseline v2.2.1 적합성 대조표
+# 함수별 Final Master Baseline v2.2.4 적합성 대조표
 
 이 문서는 현재 구현의 모든 함수 및 어셈블리 진입점을
-[Final Master Baseline v2.2.1](./master-spec-v2.1.md)와 대조한다.
+[Final Master Baseline v2.2.4](./master-spec-v2.2.4.md)와 대조한다.
 명세 위치는 해당 문서의 절 번호 및 REQ/INV ID로 표시한다.
 
 ## 판정 기준
