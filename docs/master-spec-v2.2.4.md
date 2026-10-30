@@ -1,149 +1,184 @@
-# PrioRTOS 아키텍처 및 상세 설계 통합 명세서 (Final Master Baseline v2.2.4)
+# PrioRTOS 아키텍처 및 상세 설계 통합 명세서 (Final Master Baseline v2.2.4-Final)
 
 - **Project Name:** PrioRTOS (Deterministic Hard-RTOS for RISC-V Single-Core)
-- **Architecture / ISA:** RV32IMC Base Integer Instruction Set (`march=rv32imc_zicsr -mabi=ilp32`)
-- **Target Hardware / Board:** Primary: RISC-V QEMU `virt` / Secondary: ESP32-C3 (BSP Abstraction & IRAM Pinning)
-- **Interrupt Model:** Standard RISC-V CLINT (Core Local Interruptor)
-- **Document Status:** Frozen (Baseline v2.2.4 - Pure Direct-Mapped LSB De Bruijn with Upper Guard Bit Insertion & Unified Assembly Trap Pipeline Architecture)
+- **Architecture / ISA:** RV32IMC (`-march=rv32imc_zicsr -mabi=ilp32`)
+- **Target Hardware / Board:** RISC-V QEMU `virt`, Hart 0 단일 코어 플랫 모델
+- **Interrupt Controller:** Standard RISC-V CLINT, 10 MHz timebase
+- **Document Status:** **Frozen (Zero-Collision Pure Direct Mapping & Bottom-Half Guarded)**
 - **Author / Maintainer:** 임준형
 
-## [EXECUTIVE SUMMARY] 타깃 도메인, 핵심 셀링 포인트 및 아키텍처 차별점
+## Executive Summary
 
-### 1. 목표 타깃 도메인
+PrioRTOS는 동적 메모리와 범용 네트워크 스택을 배제한 단일 코어 하드 실시간 마이크로커널이다. 목표 도메인은 차량 전장, 항공·우주 제어기 및 초정밀 산업용 드라이브다.
 
-PrioRTOS는 범용 OS가 아닌 ISO 26262 ASIL-D 및 DO-178C DAL-A 도메인의 로컬 안전 제어기를 위한 고신뢰성 초경량 실시간 마이크로커널이다.
+핵심 원칙은 다음과 같다.
 
-- **자율주행 및 x-by-Wire:** Steer-by-Wire, Brake-by-Wire, 인버터 모터 FOC, 라이다/레이다 제어
-- **UAM 및 항공우주 FCC:** 1kHz~4kHz IMU Attitude EKF, 모터 믹싱, 페일세이프
-- **스마트 팩토리:** 마이크로초 동기화 서보 드라이브 및 EtherCAT 슬레이브
-- **방위산업:** 고속 롤/피치 핀 제어기 및 Fail-Stop 안전 통제
+- 런타임 `malloc`/`free`를 금지하고 모든 커널 상태와 스택을 정적으로 배치한다.
+- `g_ready_bitmap`은 `task_id == base_priority == bit index` 직접 매핑을 사용한다.
+- LSB De Bruijn 선택기는 Guard Bit 31을 연산 시점에 합성하여 빈 Ready 큐에서도 분기 없이 IDLE을 선택한다.
+- Mutex 보유 태스크는 Top-Half와 Bottom-Half 모두에서 선점되지 않는다.
+- Mutex 보유 중 `sleep`, semaphore wait, yield는 금지한다.
+- Mutex의 유효 priority shadowing과 LIFO 복원은 최대 4단계로 제한한다.
+- Timer ISR은 직접 문맥 전환하지 않고 MSIP Bottom-Half에 위임한다.
+- Pending MSIP는 Bottom-Half에서 Mutex 보유 여부를 다시 검사한다.
+- CrashDump를 제외한 순수 스케줄링 정적 RAM은 2,976B이며, CrashDump 24B를 포함한 전체 정적 RAM은 3,000B다.
 
-### 2. 핵심 셀링 포인트
+## Part I. Software Requirements Specification
 
-- **Zero Dynamic Heap:** 런타임 동적 할당을 금지하여 단편화와 OOM을 차단한다 (`INV-MEM-001`).
-- **증명 가능한 WCET:** Guard Bit LSB De Bruijn 스케줄러는 분기 없이 6~8 사이클, `O(1)`로 동작한다.
-- **IPCP Priority Shadowing:** 락 획득 시 비트맵을 조작하지 않고 TCB 유효 우선순위를 천장값으로 승격한다.
-- **데드락·우선순위 역전 억제:** Baker SRP 기반으로 최악 블로킹을 최장 임계 구역 1개로 제한한다.
-- **단일 어셈블리 트랩 파이프라인:** 태스크 스택과 `kernel_sys_stack`(1024B)을 분리한다.
-- **메모리 풋프린트:** `.text` 4 KiB 이내, 스칼라 32B, 제어 구조체 928B, 정적 RAM 2,976B를 목표로 한다.
+### 1. System Constraints
 
-### 3. v2.1 대비 v2.2.4 핵심 혁신
+#### 1.1 Platform
 
-- `g_prio_to_slot[32]` 및 동적 뮤텍스 풀(`kernel/ipcp.c`)을 폐기하고 `Priority == Slot == Bit Index` 직접 매핑을 적용한다.
-- 뮤텍스는 TCB 우선순위 LIFO 섀도잉을 사용하고 `locked` 플래그로 이중 락을 방어한다.
-- 스케줄러 평가 시 `safe_bm = task_bitmap | (1U << 31)`을 합성하여 빈 Ready 큐에서 IDLE을 선택한다.
-- C 함수 `prio_context_switch`를 폐기하고 `trap_entry` 어셈블리 에필로그로 문맥 교환을 일원화한다.
+- RV32IMC, `-march=rv32imc_zicsr -mabi=ilp32`
+- Single Hart, Hart 0 only
+- Little-endian
+- Single M-Mode flat model
+- Atomic extension `A`는 사용하지 않으며 단일 코어 임계구역은 `mstatus.MIE`로 보호한다.
 
-## PART I. 소프트웨어 요구사항 명세서 (SRS)
-
-### 1. 시스템 환경 및 하드웨어 제약
-
-#### 1.1. QEMU `virt` 기준
-
-- RV32IMC single Hart, Hart 0 고정, Little-Endian, 단일 M-Mode flat model
-- ISA: `march=rv32imc_zicsr -mabi=ilp32`
+#### 1.2 Physical Memory Map
 
 | 영역 | 시작 주소 | 크기 | 속성 | 역할 |
-| --- | ---: | ---: | --- | --- |
-| CLINT | `0x0200_0000` | 64 KB | RW MMIO | 소프트웨어·타이머 인터럽트 |
-| PLIC | `0x0C00_0000` | 64 MB | RW MMIO | 외부 인터럽트 |
-| UART0 | `0x1000_0000` | 256 B | RW MMIO | NS16550A 디버그 UART |
-| DRAM | `0x8000_0000` | 128 MB | RWX | 전체 코드·데이터·스택 |
+|---|---:|---:|---|---|
+| CLINT | `0x0200_0000` | 64 KiB | RW MMIO | MSIP, MTIMECMP, MTIME |
+| PLIC | `0x0C00_0000` | 64 MiB | RW MMIO | 외부 인터럽트 예약 영역 |
+| UART0 | `0x1000_0000` | 256 B | RW MMIO | NS16550A, 115200-8-N-1 |
+| DRAM | `0x8000_0000` | 128 MiB | RWX | 코드, 데이터, BSS, 정적 스택 |
 
-#### 1.2. CLINT 및 인터럽트
+#### 1.3 CLINT and Timebase
 
-- `MSIP`: `0x0200_0000`
-- `MTIMECMP_LOW/HIGH`: `0x0200_4000` / `0x0200_4004`
-- `MTIME_LOW/HIGH`: `0x0200_BFF8` / `0x0200_BFFC`
-- 타임베이스 10 MHz, 1 ms = 10,000 cycles
+- `CLINT_MSIP`: `0x0200_0000`
+- `CLINT_MTIMECMP_LOW/HIGH`: `0x0200_4000` / `0x0200_4004`
+- `CLINT_MTIME_LOW/HIGH`: `0x0200_BFF8` / `0x0200_BFFC`
+- Timebase: 10 MHz
+- Tick: 1 ms, `TIMER_INTERVAL = 10000ULL`
+- `mtvec`: Direct Mode, `trap_entry` 주소에 바인딩
+- Cause `0x80000007`: Timer Top-Half
+- Cause `0x80000003`: MSIP Bottom-Half
+- 기타 trap과 동기 예외: `unhandled_trap_freeze()`로 Fail-Stop
 
-```c
-#define TIMER_INTERVAL 10000ULL
-```
+### 2. System Invariants
 
-`mtvec`는 Direct Mode로 `trap_entry`에 바인딩한다. Cause `0x80000007`은 `timer_tick_step`, Cause `0x80000003`은 MSIP DPC로 디스패치하며, 나머지는 `unhandled_trap_freeze()`로 Fail-Stop 동결한다.
+| ID | 불변식 | 계약 | 검증 | 위반 결과 |
+|---|---|---|---|---|
+| `INV-MEM-001` | Zero Dynamic Heap | 런타임 힙 금지, `.heap = 0` | map/link 검사 | 빌드 실패 |
+| `INV-ALG-002` | Bounded O(1) | De Bruijn 선택은 분기 0개, sleep 순회 `N <= 31`, Mutex 순회 `N <= 4` | 역어셈블리·루프 상한 검사 | WCET 실패 |
+| `INV-SCH-003` | Direct Mapping & Non-Preemption | Ready bit `p`는 `task_id == base_priority == p`; Mutex 보유 태스크는 절대 Ready 전환하지 않음 | 모든 선점 경로 테스트 | 슬롯 충돌 불가능 |
+| `INV-INT-004` | Single Trap Pipeline | Timer ISR은 직접 switch하지 않고 MSIP DPC를 요청 | call graph 검사 | 시스템 스택 오염 |
+| `INV-CTX-005` | Context Safety | ISR에서 task 전용 API와 `enter/exit_critical` 금지; ISR API는 trap context를 검증 | call graph, CSR 검사 | `ERR_ILLEGAL_ISR_STATE` |
+| `INV-CAP-006` | Fixed 32 Slots | `OS_MAX_TASKS == 32`, ID 31은 Guard/IDLE | `_Static_assert` | 중복 등록 패닉 |
+| `INV-LFC-007` | No Runtime Task Deletion | 부팅 후 생성·삭제·종료 금지 | API 및 return guard 검사 | `ERR_TASK_RETURNED` |
+| `INV-STK-008` | Dual Stack & Canary | 16B canary, `stack_base + 144`, 1,024B system stack | canary/boundary 검사 | `ERR_STACK_OVERFLOW` |
+| `INV-ERR-009` | Bounded Polling | UART polling은 100,000회 제한 | AST·fault injection | 문자 drop |
+| `INV-MUT-010` | Bounded IPCP | ceiling shadowing, LIFO, 최대 4중첩, 경합·위반 즉시 패닉 | fault injection | Mutex panic |
+| `INV-ATM-011` | Atomic Overrun-Safe Timer | High-Low-High read, safe MTIMECMP write, overrun 시 1 tick 후 `now + interval` | rollover/overrun 테스트 | IRQ storm 차단 |
+| `INV-CRI-012` | Critical Nesting | nesting 0일 때만 MIE 복원 | under/overflow 검사 | critical panic |
+| `INV-SYN-013` | Primitive Isolation | Mutex 보유 중 sleep/wait/yield 금지 | fault injection | `ERR_ILLEGAL_BLOCKING` |
 
-### 2. 시스템 아키텍처 불변 원칙
+### 3. Scheduler and Interrupt Policy
 
-| ID | 카테고리 | 불변식 | 핵심 제약 | 검증 |
-| --- | --- | --- | --- | --- |
-| `INV-MEM-001` | 메모리 | Zero Dynamic Heap | 런타임 힙 금지, 정적 배치 | `.heap=0`, map 검사 |
-| `INV-ALG-002` | 복잡도 | Bounded O(1) | Branchless De Bruijn, 슬립 `N <= 32` | 역어셈블리 검사 |
-| `INV-INT-003` | 인터럽트 | Single-Pipeline Trap & DPC | Timer ISR 직접 교환 금지 | Call-Graph 검사 |
-| `INV-TIM-004` | 타이밍 | Context-Aware Critical Section | ISR 임계 구역 API 금지 | CSR 검사 |
-| `INV-CAP-005` | 용량 | Fixed 32-Slot Bounding | `OS_MAX_TASKS == 32` | `_Static_assert` |
-| `INV-LFC-006` | 수명주기 | No Runtime Task Deletion | 생성·종료·삭제 금지 | return guard |
-| `INV-STK-007` | 스택 | Dual Stack & Hardware Boundary | 카나리, 144B `mscratch`, 시스템 스택 1024B | 경계 검사 |
-| `INV-ERR-008` | 오류 | Bounded HW Polling | 고정 timeout | AST 분석·결함 주입 |
-| `INV-MUT-009` | 동기화 | Deterministic IPCP Shadowing | 비트맵 없는 천장 승격, 이중 락·역순 해제 패닉 | 단위 테스트 |
-| `INV-ATM-010` | 드라이버 | CLINT Atomic & Drift-Free | 누적 `mtimecmp`, 원자적 접근 | 명령 시퀀스 검사 |
-| `INV-CRI-011` | 동시성 | Critical Section Nesting | nesting 0일 때만 MIE 복원 | 언더·오버플로 검사 |
-| `INV-SYN-012` | 동기화 | Primitive Isolation | 락 보유 중 sleep/wait/yield 금지 | 결함 주입 |
+#### 3.1 Direct Mapping
 
-### 3. 커널 서브시스템 기능 요구사항
+태스크 생성 시 `task_id == base_priority == bit index`를 영구 고정한다. Running 태스크는 Ready bitmap에서 제거되고 `g_current_tcb`로만 관리된다. Ready 상태 태스크는 Mutex를 보유할 수 없으므로 Ready 태스크의 `priority`, `base_priority`, `task_id`는 항상 동일하다.
 
-#### 3.1. 스케줄러 및 인터럽트
-
-우선순위 0~31의 고정 우선순위 선점형 스케줄러를 사용한다. Running 태스크는 `g_ready_bitmap`에서 제거하고 `g_current_tcb`로만 관리한다. `g_ready_bitmap`은 Ready 태스크만 추적하며 0일 수 있다.
+#### 3.2 Branchless Selector
 
 ```c
 safe_bm = task_bitmap | (1U << 31);
-v        = safe_bm & (-safe_bm);
+v        = safe_bm & (0U - safe_bm);
 index    = (uint32_t)(v * 0x077CB531U) >> 27;
 slot     = DeBruijn_LSB_LUT[index];
 ```
 
-원본 비트맵은 변경하지 않으며, 응용 Ready 태스크가 없을 때만 Guard Bit으로 31번 IDLE을 선택한다. Timer Top-Half는 누적 `mtimecmp` 갱신, 시스템 틱 증가, 최대 32개 슬립 슬롯 감산·만료 복귀, 선점 판정을 수행한다. Timer ISR에서는 UART 및 `enter/exit_critical`를 호출하지 않는다.
+빈 Ready 큐에서는 slot 31을 반환한다. `g_tcbs[slot]`를 직접 인덱싱하며 별도 Ready 포인터 배열을 사용하지 않는다.
 
-MSIP Bottom-Half는 현재 태스크의 128B 프레임을 보존하고 `kernel_sys_stack`으로 전환한다. MSIP 클리어, 카나리 검사, 기존 Running 태스크의 Ready 복귀, 차기 TCB 선택을 수행한 후 어셈블리 에필로그가 차기 SP를 로드하고 `mret`한다.
+#### 3.3 Non-Preemptive Mutex Section
 
-#### 3.2. 우선순위 영역
+```c
+candidate = sched_highest_priority_slot(g_ready_bitmap);
+if (candidate < g_current_tcb->priority &&
+    g_current_tcb->held_mutex == NULL) {
+    clint_send_software_interrupt();
+}
+```
 
-| 범위 | 도메인 | 정책 및 예시 |
-| --- | --- | --- |
-| 0~3 | Safety & Fault Handling | 블록 금지, WCET 50 µs 이하, E-Stop·페일세이프 |
-| 4~16 | Hard Real-Time Control | 1~10 ms, 지터 10 µs 이하, FOC·센서 융합 |
-| 17~27 | Soft Real-Time & Comm | 10~100 ms, 세마포어·링 버퍼·UART/CAN |
-| 28~30 | Background & Health | 500 ms 이상, 진단·카나리 검사 |
-| 31 | System IDLE | `wfi` 무한 루프, 동기화 API 금지 |
+Mutex 보유 태스크는 Timer Top-Half에서 MSIP 요청을 받지 않으며, 이미 pending된 MSIP가 Bottom-Half로 들어온 경우에도 다음 순서로 처리한다.
 
-#### 3.3. 부팅 및 예외
+1. MSIP를 클리어한다.
+2. 카나리를 검사한다.
+3. `held_mutex != NULL`이면 switch 없이 현재 태스크로 복귀한다.
+4. 최외곽 `mutex_unlock()`에서 Ready bitmap을 재평가하고 필요한 경우 MSIP를 재요청한다.
 
-1. `_start`에서 `_stack_top`으로 SP 설정 및 `.bss` 클리어
-2. UART와 Direct `mtvec` 초기화
-3. CLINT MSIE/MTIE 활성화 및 `g_last_mtimecmp = clint_get_mtime() + 10000`
-4. `tasks_init()`으로 정적 태스크 등록
-5. `priortos_start()`에서 슬롯 31 IDLE 등록 및 최고 우선순위 선택
-6. `stack_base + 144`를 `mscratch`에 기록하고 `prio_context_first_switch()` 실행
+### 4. IPCP Mutex
 
-미인가 트랩은 `unhandled_trap_freeze()`로, 명시적 오류는 MIE 차단·UART 출력·`wfi` 루프의 `kernel_panic()`으로 처리한다.
+- Mutex는 정적으로 선언한다.
+- `ceiling_prio`는 0~30이다. 31은 IDLE 전용이다.
+- Mutex 경합, ceiling 위반, 이중 락, 역순 unlock은 대기 없이 즉시 패닉한다.
+- `OS_MAX_MUTEX_NESTING == 4U`다.
+- 연결 리스트 검사는 다음과 같이 반드시 bounded해야 한다.
 
-#### 3.4. 태스크 제어
+```c
+uint32_t nest_cnt = 0U;
+mutex_t *curr = g_current_tcb->held_mutex;
+while (curr != NULL && nest_cnt < OS_MAX_MUTEX_NESTING) {
+    ++nest_cnt;
+    curr = curr->prev_mutex;
+}
+if (curr != NULL || nest_cnt >= OS_MAX_MUTEX_NESTING) {
+    kernel_panic("ERR_IPCP_NESTING");
+}
+```
 
-`task_create()`는 범위, 포인터, 144바이트 이상 크기, 4바이트 정렬 및 중복 등록을 검증한다. 하단 16바이트에 `0x5A5A5A5A` 카나리를 기록하고 상단 128바이트에 `mstatus=0x1880`, `mepc=task_func`, `ra=task_return_guard`를 배치한다.
+최외곽 Mutex를 해제한 뒤에만 선점 여부를 검사한다.
 
-- `task_yield()`: 락 보유 시 패닉 후 MSIP 예약
-- `task_sleep_ticks()`: 0이면 yield, 락 보유 또는 IDLE 호출은 패닉
-- `idle_task()`: 슬롯 31에서 `while(1) { __asm__ volatile("wfi"); }`
+### 5. Semaphore
 
-#### 3.5. IPCP 및 세마포어
+- `waiters`는 순수 task ID bitmap이며 Guard Bit을 주입하지 않는다.
+- `semaphore_wait()`는 Task 전용이다.
+- `semaphore_signal()`은 Task 전용이며 임계구역을 사용한다.
+- `semaphore_signal_from_isr()`는 ISR 전용이며 `mstatus.MIE == 0`과 trap context를 검증한다.
+- Mutex 보유 태스크와 IDLE은 semaphore wait를 호출할 수 없다.
 
-`mutex_lock()`은 천장 위반·이중 락을 검증하고 `saved_prio` 및 `prev_mutex`를 LIFO로 저장한 후 TCB 우선순위를 승격한다. `mutex_unlock()`은 최상단 뮤텍스 일치와 `locked`를 검증하고 우선순위를 복원한다.
+### 6. Timer Overrun
 
-세마포어는 `waiters` 비트맵을 사용한다. 대기자가 없으면 `count++`하고, 있으면 Guard Bit을 넣지 않은 `v = waiters & (-waiters)`로 최고 우선순위 대기자를 깨운다. 락 보유 태스크와 IDLE은 sleep, semaphore wait, yield를 호출할 수 없다.
+정상 경로에서는 `g_last_mtimecmp += TIMER_INTERVAL`을 사용한다. `now >= g_last_mtimecmp + TIMER_INTERVAL`이면 누락된 tick을 일괄 보정하지 않고 논리 tick 하나만 처리한 뒤 `g_last_mtimecmp = now + TIMER_INTERVAL`로 재동기화한다. 64비트 unsigned modulo 산술을 사용하며 rollover 경계 테스트를 포함한다.
 
-#### 3.6. 임계 구역 및 시간
+### 7. Task Control
 
-`enter_critical()`은 `csrci mstatus, 8` 후 nesting을 증가시키고, `exit_critical()`은 nesting이 0일 때 배리어 후 `csrsi mstatus, 8`을 실행한다. ISR에서는 두 API를 호출하지 않는다. `mtime`은 High-Low-High로 읽고 `mtimecmp`는 `HIGH=0xFFFFFFFF` → `LOW=low` → `HIGH=high` 순서로 쓴다.
+`task_create()`는 priority 범위, 함수 포인터, stack 포인터, 4바이트 정렬, 144B 이상 크기, 중복 등록을 검증한다. 16B canary와 128B 초기 frame을 구성한다.
 
-## PART II. 상세 설계 명세서 (LLD)
+- `task_yield()`: Mutex 보유 또는 IDLE이면 패닉
+- `task_sleep_ticks()`: Mutex 보유 또는 IDLE이면 패닉; 0이면 yield
+- `idle_task()`: priority 31, `wfi` 무한 루프
+- 태스크 반환: `task_return_guard()`에서 패닉
 
-### 4. 디렉터리 및 파일 아키텍처
+응용 태스크의 정상 순서는 다음과 같다.
+
+1. Mutex lock
+2. 임계 연산
+3. Mutex unlock
+4. `task_sleep_ticks()`
+
+### 8. Context and Low-Level APIs
+
+| API | 컨텍스트 | 계약 |
+|---|---|---|
+| `enter_critical` / `exit_critical` | Task | nesting으로 MIE를 중첩 관리 |
+| `get_tick_count` | Task | 임계구역에서 64비트 tick 복사 |
+| `get_tick_count_from_isr` | ISR | trap context와 `MIE == 0` 검증 후 반환 |
+| `timer_tick_step` | Timer Top-Half | 직접 context switch 금지 |
+| `clint_get_mtime` | Task/ISR | High-Low-High read |
+| `clint_set_mtimecmp` | Task/ISR | High=max, Low, High 순서 |
+| `uart_putc` | Task/Panic | 최대 100,000회 polling 후 drop |
+| `uart_puts` | Task/Panic | 최대 256바이트 |
+| `semaphore_signal_from_isr` | ISR | `MIE == 0` 및 trap context 검증 |
+
+## Part II. Low-Level Design
+
+### 9. Directory Layout
 
 ```text
 PrioRTOS/
 ├── Makefile
-├── README.md
 ├── linker.ld
 ├── boot/startup.S
 ├── app/main.c
@@ -159,44 +194,14 @@ PrioRTOS/
 ├── kernel/mutex.c
 ├── kernel/semaphore.c
 ├── kernel/panic.c
-├── kernel/include/prio_rtos.h
-├── kernel/include/kernel_internal.h
-├── kernel/include/stack_guard.h
-└── build/
+└── kernel/include/{prio_rtos.h,kernel_internal.h,stack_guard.h}
 ```
 
-> `5. 모듈별 함수 원형과 구현 명세`는 요청에 따라 제외했다.
-
-### 6. 정밀 메모리 레이아웃 및 자료구조 명세
-
-#### 6.1. 128바이트 문맥 보존 프레임
-
-```text
-[High Address]
-  sp + 0x7C : mstatus (0x0000_1880)
-  sp + 0x78 : mepc (task_func)
-  sp + 0x74 : x31 (t6)
-  sp + 0x70 : x30 (t5)
-  ...
-  sp + 0x20 : x10 (a0)
-  sp + 0x1C : x9 (s1)
-  sp + 0x18 : x8 (s0/fp)
-  sp + 0x14 : x7 (t2)
-  sp + 0x10 : x6 (t1)
-  sp + 0x0C : x5 (t0)
-  sp + 0x08 : x4 (tp)
-  sp + 0x04 : x3 (gp)
-  sp + 0x00 : x1 (ra = task_return_guard)
-[Current SP: 총 32 Words = 128 Bytes]
-[stack_base + 144B: mscratch 경계]
-[stack_base: 0x5A5A5A5A × 4 카나리]
-[Low Address]
-```
-
-#### 6.2. 핵심 자료구조
+### 10. Data Structures
 
 ```c
-#define OS_MAX_TASKS 32U
+#define OS_MAX_TASKS         32U
+#define OS_MAX_MUTEX_NESTING 4U
 
 typedef enum {
     TASK_STATE_UNUSED  = 0,
@@ -230,42 +235,83 @@ typedef struct {
     uint32_t waiters;
 } Semaphore_t;
 
-_Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be exactly 32");
-_Static_assert(sizeof(mutex_t) == 8, "mutex_t size mismatch");
-_Static_assert(sizeof(TCB_t) == 24, "TCB_t size mismatch");
-_Static_assert(offsetof(TCB_t, sp) == 0, "TCB sp offset mismatch");
-_Static_assert(offsetof(TCB_t, stack_base) == 16, "TCB stack_base offset mismatch");
-_Static_assert(sizeof(Semaphore_t) == 8, "Semaphore_t size mismatch");
+typedef struct {
+    uint32_t mcause;
+    uint32_t mepc;
+    uint32_t mtval;
+    uint32_t sp;
+    uint32_t task_id;
+    uint32_t reserved_pad;
+} CrashDump_t;
+
+_Static_assert(sizeof(mutex_t) == 8U, "mutex_t size mismatch");
+_Static_assert(sizeof(TCB_t) == 24U, "TCB_t size mismatch");
+_Static_assert(sizeof(Semaphore_t) == 8U, "Semaphore_t size mismatch");
+_Static_assert(sizeof(CrashDump_t) == 24U, "CrashDump_t size mismatch");
+_Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be 32");
 ```
 
-#### 6.3. 커널 전역 정적 변수 레지스트리
+### 11. Context Frame
 
-| 변수 | 자료형 | 크기 | 정의·역할 |
-| --- | --- | ---: | --- |
-| `g_tcbs[32]` | `TCB_t[]` | 768 B | 슬롯·우선순위 직접 매핑 TCB |
-| `g_sleep_remaining_ticks[32]` | `volatile uint32_t[]` | 128 B | 잔여 슬립 틱 |
-| `g_ready_bitmap` / `g_sleep_bitmap` | `volatile uint32_t` | 4 B씩 | Ready/Sleep 비트맵 |
-| `g_system_ticks` / `g_last_mtimecmp` | `volatile uint64_t` | 8 B씩 | 시스템 틱/누적 비교값 |
-| `g_current_tcb` | `TCB_t *` | 4 B | 현재 TCB |
-| `g_critical_nesting_count` | `volatile uint32_t` | 4 B | nesting 카운터 |
-| `idle_stack[1024]` | `uint8_t[]` | 1,024 B | IDLE 스택 |
-| `kernel_sys_stack[1024]` | `uint8_t[]` | 1,024 B | 부트·C 트랩 시스템 스택 |
+태스크 스택은 하향 성장한다. `trap_entry`는 정확히 128B를 확보한다. 프레임에는 `x1`, `x3`~`x31`, `mepc`, `mstatus`를 저장하며 `x2(sp)`는 프레임 자체로 관리한다. 스택 하단에는 16B canary가 있고 `mscratch = stack_base + 144`를 사용한다.
 
-순수 스칼라 상태 변수는 32B, 제어 구조체는 928B, 두 스택을 포함한 정적 RAM은 2,976B이다. `g_prio_to_slot[32]`와 동적 뮤텍스 풀은 없다.
+### 12. Static RAM Budget
 
-#### 6.4. 비트맵 운용 및 생명주기
+| 항목 | 크기 |
+|---|---:|
+| `g_tcbs[32]` | 768B |
+| `g_sleep_remaining_ticks[32]` | 128B |
+| 스칼라 상태 | 32B |
+| CrashDump | 24B |
+| 순수 제어 영역 합계 | 952B |
+| `idle_stack` | 1,024B |
+| `kernel_sys_stack` | 1,024B |
+| CrashDump 제외 정적 RAM | 2,976B |
+| CrashDump 포함 정적 RAM | 3,000B |
 
-1. 부팅: `g_ready_bitmap = 0x0000_0000`
-2. 태스크 4·5 등록: `0x0000_0030`
-3. IDLE 31 등록: `0x8000_0030`
-4. 태스크 4 Running: `0x8000_0020`
-5. 모든 태스크가 Running/Blocked이면 `0x0000_0000` 허용
-6. 평가 시 Guard Bit으로 31번 IDLE을 안전하게 선택
-7. Cause 3으로 선점된 Running 태스크는 Ready 비트맵으로 복귀
+### 13. Boot Sequence
+
+1. `_start`: `sp = _stack_top`
+2. `.bss` zero clear
+3. UART와 Direct `mtvec` 초기화
+4. MSIP/MTIE와 첫 `mtimecmp` 초기화
+5. 정적 태스크 및 Mutex/Semaphore 등록
+6. IDLE slot 31 등록
+7. 최고 우선순위 태스크를 Running으로 전환
+8. `mscratch = stack_base + 144`
+9. `prio_context_first_switch()`와 `mret`으로 최초 태스크 진입
+
+### 14. Acceptance Criteria
+
+- `sched_highest_priority_slot`: 정적 명령어 10개 이하, 조건 분기 0개
+- 실제 RV32IMC 하드웨어 `mcycle`: 최대 8 cycle 목표
+- Mutex 중첩 검사: 최대 4회
+- 정상 Timer 10,000 tick 누적 오차: 0 cycle
+- 강제 `3 * TIMER_INTERVAL` 지연: 1 tick만 처리 후 `now + TIMER_INTERVAL` 재동기화
+- Kernel `.text`: 4 KiB 이하
+- CrashDump 제외 정적 RAM: 2,976B
+- CrashDump 포함 정적 RAM: 3,000B
+- `.heap`: 0B
+
+### 15. Traceability IDs
+
+| 요구사항 | 대상 |
+|---|---|
+| `REQ-SCH-001` | De Bruijn selector / `INV-ALG-002` |
+| `REQ-SCH-002` | Direct mapping and non-preemption / `INV-SCH-003` |
+| `REQ-TSK-001`~`005` | Task lifecycle / `INV-CAP-006`, `INV-LFC-007` |
+| `REQ-SYN-001`~`005` | Mutex and Semaphore / `INV-MUT-010`, `INV-SYN-013` |
+| `REQ-CRI-001`~`002` | Critical nesting / `INV-CRI-012` |
+| `REQ-TMR-001`~`002` | Tick and overrun timer / `INV-ATM-011` |
+| `REQ-DRV-001`~`002` | CLINT and bounded UART / `INV-ATM-011`, `INV-ERR-009` |
 
 ## Revision History
 
-| 버전 | 개정 일자 | 주요 개정 |
-| --- | --- | --- |
-| v2.2.3 | 2026-10-30 | 단일 `trap_entry` 에필로그, Ready 복귀, ISR 임계 구역 금지, 누적 `mtimecmp`, 순수 세마포어 LSB, 시스템 스택 명시 |
-| v2.2.4 | 2026-10-30 | 스칼라 32B, 제어 구조체 928B, 정적 RAM 2,976B 정합성, `N <= 32` WCET, Delta Queue 로드맵, 타이머 롤오버 불변식 |
+| 버전 | 개정 내용 |
+|---|---|
+| v2.2.3-a | `prio_context_switch` 폐기, `trap_entry` 단일화 |
+| v2.2.3-b | ISR 임계구역 API 금지 |
+| v2.2.3-c | 누적 `mtimecmp`와 1 ms timer 도입 |
+| v2.2.3-d | system stack, canary, `mscratch + 144` 명시 |
+| v2.2.4 | BSS와 정적 RAM 산술 정리 |
+| v2.2.4-Final | Direct mapping, Mutex non-preemption, Bottom-Half pending MSIP guard, bounded Mutex nesting, timer overrun policy, ISR API separation, 최종 메모리 예산 확정 |
