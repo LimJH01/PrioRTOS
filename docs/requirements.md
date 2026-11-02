@@ -6,10 +6,10 @@
 
 | ID | 카탈로그 항목 | 요구사항 |
 |---|---|---|
-| `SYS-001` | 대상 플랫폼 | 대상은 RISC-V 32-bit `RV32IMAC`, SiFive Freedom E310 `FE310-G002` / HiFive1 Rev B로 한다. |
-| `SYS-002` | 코어 클럭 | 기본 발진기 기준 코어 클럭은 16 MHz로 고정한다. |
+| `SYS-001` | 1차 대상 플랫폼 | 1차 실행 기준은 RISC-V QEMU `virt`, Hart 0 단일 코어, M-mode flat model, `RV32IMC`로 한다. FE310-G002 / HiFive1 Rev B는 별도 포팅 대상이다. |
+| `SYS-002` | ISA 및 ABI | 빌드는 `-march=rv32imc_zicsr -mabi=ilp32`를 사용한다. QEMU 기준 CLINT timebase는 10 MHz로 관리하며 CPU core clock은 별도 타깃 검증 항목이다. |
 | `TIME-001` | 시스템 타이머 | 시스템 타이머는 CLINT의 `mtime` / `mtimecmp`를 사용한다. |
-| `TIME-002` | 시스템 tick | 시스템 tick은 100 Hz, 즉 10 ms 주기로 동작한다. `mtimecmp` 증가량은 실제 `mtime` timebase에 따라 계산한다. timebase가 16 MHz인 경우 한 tick은 160,000 count다. |
+| `TIME-002` | 시스템 tick | 1차 QEMU 기준 시스템 tick은 1 kHz, 즉 1 ms 주기로 동작한다. 10 MHz `mtime` timebase에서 `mtimecmp` 증가량은 10,000 count다. 실제 보드는 timebase에 맞춰 포팅 설정을 변경한다. |
 | `TIME-003` | 서브밀리초 타이밍 | 서브밀리초 정밀도가 필요한 태스크는 시스템 tick에 의존하지 않는다. 지터를 줄이기 위해 PWM 또는 타이머 하드웨어의 직접 인터럽트(ISR)로 트리거한다. |
 
 ## 2. 태스크 및 스케줄러
@@ -32,7 +32,7 @@
 | `IPC-001` | 정적 Mutex 및 Ceiling | 모든 Mutex는 정적으로 선언한다. 각 Mutex의 `ceiling_priority`는 해당 Mutex에 접근할 수 있는 태스크 중 가장 높은 우선순위(가장 작은 숫자)로 사전에 정적으로 설정한다. |
 | `IPC-002` | 즉시 우선순위 승격 | 태스크가 `mutex_lock()`에 진입하면 블로킹 없이 해당 Mutex의 `ceiling_priority`로 현재 태스크의 실행 우선순위를 즉시 승격한다. |
 | `IPC-003` | 우선순위 복원 | `mutex_unlock()` 시 락 획득 직전의 우선순위 또는 중첩 락에 의해 저장된 직전 ceiling 우선순위로 즉시 복원한다. |
-| `IPC-004` | 중첩 제한 | Mutex 락 중첩은 최대 2단계까지 허용한다. 세 번째 중첩은 허용하지 않는다. |
+| `IPC-004` | 중첩 제한 | 최종 Master 기준 Mutex 락 중첩은 최대 4단계까지 허용한다. 다섯 번째 중첩은 즉시 오류 처리한다. |
 | `IPC-005` | Blocking bound | 태스크의 최악 블로킹 시간 `B_i`는 자신보다 낮은 우선순위 태스크가 실행하는 임계 구역 시간 중 최댓값 하나로 상한을 둔다. |
 
 ## 4. 메모리 및 결정론성
@@ -45,9 +45,9 @@
 
 ## 5. 검증 기준
 
-- 타깃 설정에서 코어 클럭, `mtime` timebase 및 100 Hz tick 주기를 확인한다.
+- 1차 QEMU 설정에서 RV32IMC ABI, `mtime` timebase 10 MHz 및 1 kHz tick 주기를 확인한다. 실제 보드의 core clock/timebase는 별도 포팅 검증에서 확인한다.
 - 태스크 수와 우선순위 중복 제한, ready bitmap 비트 의미 및 최고 우선순위 선택 결과를 검증한다.
-- Mutex ceiling 승격·복원, 최대 2단계 중첩, 블로킹 시간 상한을 검증한다.
+- Mutex ceiling 승격·복원, 최대 4단계 중첩, 블로킹 금지 규칙 및 blocking bound를 검증한다.
 - 링크 결과와 소스 의존성을 검사해 부팅 완료 후 힙 할당/해제 호출이 없고, TCB와 태스크 스택이 정적 BSS에 배치되는지 확인한다.
 - CLZ 단일 명령·단일 사이클 성능은 RV32IMAC 빌드의 생성 코드 및 대상 하드웨어에서 별도로 확인한다. O(1) 복잡도만으로 사이클 상한이나 Hard Real-Time 보장을 주장하지 않는다.
 

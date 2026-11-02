@@ -9,7 +9,7 @@ OBJ_DIR   := $(BUILD_DIR)/obj
 
 # 3. 컴파일러 플래그
 # - 베어메탈/자립형 환경 플래그(-ffreestanding, -nostdlib) 유지
-CFLAGS  := -march=rv32i_zicsr -mabi=ilp32 -mcmodel=medany \
+CFLAGS  := -march=rv32imc_zicsr -mabi=ilp32 -mcmodel=medany \
            -nostdlib -ffreestanding \
            -mpreferred-stack-boundary=4 \
            -ffunction-sections -fdata-sections \

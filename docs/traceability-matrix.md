@@ -22,9 +22,9 @@
 
 | 요구사항 ID | 요구사항 요약 | 서브시스템 / 명세 영역 | 구현 API / 파일 | 검증 사례 ID | 테스트 검증 방식 | 현재 상태 |
 |---|---|---|---|---|---|---|
-| `SYS-001`, `SYS-002` | RV32IMAC / FE310, 16 MHz 목표 플랫폼 | 플랫폼 및 타깃 구성 | `Makefile`; `linker.ld`; `boot/startup.S` | `TC-SYS-001` | 컴파일 플래그, ELF 헤더/속성, 보드 클럭 설정을 검사한다. QEMU 설정만으로 FE310 및 16 MHz 동작을 입증하지 않는다. | **부분** — Makefile은 RV32I + Zicsr 및 QEMU `virt`를 지정하며 FE310/16 MHz 타깃 검증은 확인되지 않음. |
+| `SYS-001`, `SYS-002` | RV32IMC / QEMU virt, Hart 0, 10 MHz timebase 기준 플랫폼 | 플랫폼 및 타깃 구성 | `Makefile`; `linker.ld`; `boot/startup.S` | `TC-SYS-001` | 컴파일 플래그, ELF 속성, QEMU machine/hart 설정 및 CLINT timebase를 검사한다. FE310/실제 보드 포팅은 별도 검증 대상이다. | **부분** — 기준 문서와 Makefile은 정렬했으며 ELF/QEMU 실행 검증이 남아 있음. |
 | `TIME-001` | CLINT `mtime` / `mtimecmp` 사용 | 타이머 및 시간 기준 | `clint_timer_init()`, `clint_get_mtime()`, `clint_set_mtimecmp()`, `bsp/clint.c`, `bsp/clint.h`, `kernel/trap.c` | `TC-TIME-001` | QEMU 및 실제 타깃에서 `mtime` 증가와 `mtimecmp` 인터럽트 발생/재설정을 확인한다. | **부분** — CLINT 접근 경로는 구현됐으나 목표 보드에서 검증되지 않음. |
-| `TIME-002` | 100 Hz, 10 ms 시스템 tick | 타이머 및 시간 기준 | `TIMER_INTERVAL`, `clint_timer_init()`, `clint_set_next_timer()` in `bsp/clint.c`; 타이머 처리 in `kernel/trap.c` | `TC-TIME-002` | 타깃의 실제 `mtime` timebase를 확인하고 연속 인터럽트 간 tick 간격을 계측해 10 ms인지 검사한다. | **불일치** — 현재 `TIMER_INTERVAL`은 10,000,000 count이며 10 MHz timebase라면 1초다. 코드에서 timebase 기반 100 Hz 값 계산도 확인되지 않음. |
+| `TIME-002` | 1 kHz, 1 ms 시스템 tick | 타이머 및 시간 기준 | `TIMER_INTERVAL`, `clint_timer_init()`, `clint_set_next_timer()` in `bsp/clint.c`; 타이머 처리 in `kernel/trap.c` | `TC-TIME-002` | 10 MHz `mtime` timebase와 연속 인터럽트 간 10,000 count 간격을 계측한다. | **부분** — `TIMER_INTERVAL=10000ULL`은 정렬됐지만 timer tick 처리와 overrun 검증이 남아 있음. |
 | `TIME-003` | 서브밀리초 작업을 시스템 tick과 분리 | 타이머 및 시간 기준 | 현재 대응 API 없음; `bsp/clint.c`, `kernel/trap.c` | `TC-TIME-003` | 요구되는 PWM/하드웨어 직접 인터럽트 경로가 설계·구현되었는지 확인하고, 대상 장치에서 트리거 지터를 계측한다. | **미구현** |
 | `TASK-001` | 최대 32개, 동적 생성·소멸 없음 | 태스크 및 정적 등록 | `MAX_TASKS`, `g_tcbs[]`, `task_create()` in `kernel/include/kernel_internal.h`, `kernel/sched.c`; 정적 스택 in `app/tasks.c` | `TC-TASK-001` | 32개 슬롯 경계에서 등록 성공/실패, 슬롯 중복 등록 거부 및 런타임에 태스크 테이블이 추가 변경되지 않는지 검사한다. | **부분** — 32개 슬롯의 고정 크기 TCB 및 부팅 시 등록 구조는 구현. 슬롯 31은 `priortos_start()`가 idle에 사용하므로 응용 태스크는 최대 31개이며 현재 실제 응용 태스크는 2개다. 자동 경계 테스트 없음. |
 | `TASK-002` | 우선순위 0–31, 중복 금지 | 태스크 및 정적 등록 | `task_create()` in `kernel/sched.c`; `TaskCreateResult_t` in `kernel/include/prio_rtos.h` | `TC-TASK-002` | 범위 밖 우선순위와 동일 슬롯 재등록을 입력하고 결과 코드 및 TCB/ready bitmap 불변성을 검사한다. | **구현 / 미검증** — 우선순위를 슬롯 인덱스로 사용하며 0–31 범위와 사용 중 슬롯을 검사한다. |
@@ -35,7 +35,7 @@
 | `IPC-001` | 정적 Mutex 및 사용자 기준 ceiling | IPCP 및 정적 자원 설정 | `mutex_configure()` 및 mutex 테이블 in `kernel/ipcp.c`; 공개 타입/API in `kernel/include/prio_rtos.h`; 호출 예 `app/tasks.c` | `TC-IPC-001` | 사용자 슬롯 유효성, ceiling 계산, 중복 설정 및 `priortos_start()` 이후 설정 동결을 확인한다. 설정된 ceiling이 사용자 태스크 기본 우선순위 최솟값과 일치하는지 검사한다. | **부분 / 미검증** — 고정 테이블과 설정 API가 있으나 ceiling은 초기화 시 사용자 비트맵에서 계산된다. 자동 테스트 없음. |
 | `IPC-002` | Mutex 획득 시 ceiling으로 즉시 승격 | IPCP 우선순위 관리 | `mutex_lock()`, `can_acquire()`, `refresh_effective_priority()` in `kernel/ipcp.c` | `TC-IPC-002` | lock 성공 직후 effective priority 및 스케줄러 선택을 확인한다. 잠금이 불가능한 경우는 block/handoff 정책대로 동작하는지 별도 검사한다. | **부분 / 미검증** — 성공적으로 획득한 경우 승격하며, 획득이 불가능하면 block될 수 있다. 요구사항의 “블로킹 없이”와 동작 전제가 맞는지 정합성 결정이 필요하다. |
 | `IPC-003` | unlock 시 base/다른 보유 mutex 기준 우선순위 복원 | IPCP 우선순위 관리 | `mutex_unlock()`, `refresh_effective_priority()` in `kernel/ipcp.c` | `TC-IPC-003` | 단일·다중 mutex 획득 및 서로 다른 순서의 해제 후 effective priority가 base 또는 남은 ceiling 최솟값으로 복원되는지 검사한다. | **부분 / 미검증** — 보유 mutex를 재계산하는 경로는 구현됐으나 자동 테스트 없음. |
-| `IPC-004` | Mutex 중첩 최대 2단계 | IPCP 중첩 정책 | `mutex_lock()`, `mutex_unlock()` in `kernel/ipcp.c`; `MAX_MUTEXES` in `kernel/include/prio_rtos.h` | `TC-IPC-004` | 서로 다른 mutex 1·2단계 획득은 허용되고 3단계는 거부되는지 반환값과 소유권 상태를 확인한다. | **미구현** — 현재 구현에서 중첩 깊이 2 제한 또는 세 번째 획득을 거부하는 검사가 확인되지 않음. `MAX_MUTEXES`는 mutex 개수 상한이지 중첩 깊이 제한이 아니다. |
+| `IPC-004` | Mutex 중첩 최대 4단계 | IPCP 중첩 정책 | 최종 `mutex_init()`, `mutex_lock()`, `mutex_unlock()`; `OS_MAX_MUTEX_NESTING` in `kernel/include/kernel_internal.h` | `TC-IPC-004` | 서로 다른 mutex 1~4단계 획득은 허용되고 5단계는 즉시 오류 처리되는지 확인한다. | **미구현** — 상수 `OS_MAX_MUTEX_NESTING=4`는 존재하지만 최종 정적 Mutex API와 제한 검사가 아직 연결되지 않음. |
 | `IPC-005` | 낮은 우선순위 임계 구역 하나로 blocking bound 제한 | IPCP 블로킹 및 시간 분석 | `mutex_lock()`, `mutex_unlock()`, waiter handoff in `kernel/ipcp.c` | `TC-IPC-005` | 정의된 경쟁 태스크/자원 시나리오에서 최악 blocking time을 측정하고 분석 상한과 비교한다. 임계 구역 WCET 및 대상 클럭 가정을 기록한다. | **미검증** — 코드만으로 시간 상한을 입증할 수 없고 WCET/대상 계측 결과도 없음. |
 | `MEM-001` | TCB와 태스크 스택의 정적 BSS 배치 | 메모리 맵 및 정적 메모리 | `g_tcbs[]` in `kernel/sched.c`; 스택 배열 in `app/tasks.c`; idle stack in `kernel/sched.c`; BSS in `linker.ld` | `TC-MEM-001` | ELF/map의 심볼 주소와 섹션을 검사해 TCB 및 태스크 스택이 BSS에 있고 동적 할당이 아닌지 확인한다. | **부분 / 미검증** — 정적 배열과 BSS 배치는 코드상 확인되며 산출물 검사 결과는 기록되지 않음. |
 | `MEM-002` | 부팅 후 `malloc()`/`free()` 및 힙 의존 금지 | 메모리 맵 및 정적 메모리 | `kernel/`, `app/`, `bsp/` 전체; 링크 산출물 `build/kernel.elf`, `build/kernel.map` | `TC-MEM-002` | 소스 및 링크 심볼/재배치에서 할당 함수 참조를 검색하고, 링크 설정에 힙 영역/의존성이 없는지 확인한다. 검사 범위와 생성 산출물 해시를 기록한다. | **미검증** — 현재 자동 검사 없음. “정적 배열 사용”만으로 전체 링크의 힙 비의존성이 입증되지는 않음. |
@@ -52,8 +52,8 @@
 
 ## 현재 확인된 주요 간극
 
-- 문서의 목표 플랫폼은 FE310/RV32IMAC이지만 빌드 설정은 RV32I + Zicsr 및 QEMU `virt`다.
-- 요구사항은 100 Hz tick을 정의하지만 현재 timer interval은 10 MHz 기준 10,000,000 count로 1초에 해당한다.
+- 1차 기준 플랫폼은 QEMU `virt`/RV32IMC/Hart 0이며, FE310 포팅은 별도 범위다.
+- 1차 기준 tick은 10 MHz에서 10,000 count인 1 ms이며, 현재 코드는 interval 값만 정렬되고 timer 처리 경로는 추가 구현이 필요하다.
 - ready bitmap의 요구 타입/비트 의미와 구현(`uint32_t`, task slot 기준)이 다르며 최고 우선순위 선택도 상수 시간 CLZ가 아니라 슬롯 순회다.
-- IPCP의 2단계 mutex 중첩 제한은 구현에서 확인되지 않는다. IPCP 동작, 임계 구역 및 blocking bound 자동 검증도 없다.
+- 최종 기준은 4단계 mutex 중첩이지만 정적 Mutex 전환과 중첩 검사, IPCP 동작 및 blocking bound 자동 검증은 아직 남아 있다.
 - 현재 `verification/` 검사 파일과 자동 테스트가 없으므로 위 `TC-*`는 모두 추후 구현할 검증 사례다.

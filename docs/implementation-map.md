@@ -230,6 +230,6 @@ IPCP의 lock/unlock, ceiling 기반 대기자 wakeup, 유효 우선순위 승격
 
 - `g_ready_bitmap`의 C 타입은 32비트이며 비트는 태스크 슬롯을 나타낸다. 현재 선택은 `MAX_TASKS` 순회 방식이며 실행시간 상한은 타깃에서 측정해야 한다.
 - `g_ready_bitmap`은 슬롯을 나타낸다. block 시 해당 슬롯 비트를 제거하고 wake 시 복구하며, RUNNING 태스크도 bitmap에 포함한다.
-- `TIMER_INTERVAL`은 10 MHz 기준 10,000,000 tick으로 설정돼 있어 1초에 해당한다. 1 ms tick으로 사용하려는 의도라면 timebase와 함께 재결정해야 한다.
+- 1차 기준은 10 MHz timebase의 1 ms tick이며 `TIMER_INTERVAL=10000ULL`로 정렬됐다. 실제 timer tick 처리와 overrun 검증은 아직 남아 있다.
 - 트랩의 system stack과 `mscratch` 접근 경로가 코드에 있지만, 반복 선점·가드 손상·레지스터 보존 테스트를 통과하기 전에는 보호 기능 검증 완료로 보지 않는다.
 - Makefile 타깃 이름이 존재하는 것만으로 CBMC/trace 실행 파일이나 검증 결과가 존재한다고 판단하지 않는다.

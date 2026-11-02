@@ -23,7 +23,7 @@ WCET, 스택 사용량 및 테스트 통과 여부를 뜻하지 않는다.
 | 함수 | 현재 판정 | 명세 위치 | 명세와 맞지 않는 점 / 판단 근거 |
 |---|---|---|---|
 | [`_start`](../boot/startup.S) | ✅ 충족 | §3.3 Step 1, §5.1 | 부트 스택 설정, `.bss` 초기화 후 `main()`을 호출한다. |
-| [`main`](../app/main.c) | ◐ 부분 | §3.3 Step 2–3, §5.11 | 초기화 순서는 명세와 맞지만 `TIMER_INTERVAL`이 현재 10,000,000으로 설정되어 명세의 10MHz·1ms 기준 10,000 count와 다르다. |
+| [`main`](../app/main.c) | ◐ 부분 | §3.3 Step 2–3, §5.11 | 초기화 순서는 명세와 맞고 `TIMER_INTERVAL` 값도 10MHz·1ms 기준 10,000 count로 정렬되어 있다. timer tick 처리 연결은 남아 있다. |
 | `uart_puts_checked` ([`main.c`](../app/main.c)) | ◐ 부분 | §5.10, §3.3 | UART 오류를 `kernel_panic`으로 전파하는 보조 함수다. 명세에 별도 함수로 정의되어 있지 않으며 부트 출력은 명세의 핵심 초기화 단계에 추가된 동작이다. |
 | [`tasks_init`](../app/tasks.c) | ◐ 부분 | §5.12, §6.4 | 정적 스택·세마포어·응용 태스크·mutex 사용자를 등록한다. 다만 명세의 정적 `mutex_t` 초기화가 아니라 폐기 예정인 동적 ID 기반 `mutex_configure()`를 사용한다. |
 | [`task_a`](../app/tasks.c) | ◐ 부분 | §3.4 REQ-SYN-004–005, §5.12 | semaphore/mutex 순서는 적용되어 semaphore 대기는 mutex 보유 중 일어나지 않는다. 그러나 mutex 보유 중 UART 출력과 지연 루프를 수행하며 실행시간 상한이나 계측은 없다. 실험용 임시 태스크다. |
@@ -39,8 +39,8 @@ WCET, 스택 사용량 및 테스트 통과 여부를 뜻하지 않는다.
 | [`clint_clear_software_interrupt`](../bsp/clint.c) | ✅ 충족 | §3.3 트랩 처리, §5.9 | MSIP를 0으로 기록해 pending 상태를 해제한다. |
 | [`clint_get_mtime`](../bsp/clint.c) | ◐ 부분 | §3.6 REQ-TMR-001, §2 INV-ATM-010, INV-ERR-008, §5.9 | High-Low-High 읽기를 최대 `CLINT_MTIME_READ_ATTEMPTS`회 시도하고 실패하면 `kernel_panic()`으로 정지한다. 반복 상한은 있으나 MMIO 접근의 WCET는 타깃 버스 응답시간에 따라 별도 입증해야 한다. 인터럽트 지연은 함수 자체의 알고리즘 실행시간과 분리하여 계측해야 한다. |
 | [`clint_set_mtimecmp`](../bsp/clint.c) | ✅ 충족 | §2 INV-ATM-010, §5.9, §6.8 | RV32에서 LOW를 최댓값으로 임시 설정한 후 HIGH, LOW를 기록한다. |
-| [`clint_timer_init`](../bsp/clint.c) | ❌ 미충족 | §1.1, §3.3 Step 3, §5.9, §6.8 | 명세는 10MHz에서 1ms에 해당하는 10,000 count를 요구하지만 현재 `TIMER_INTERVAL`은 10,000,000이다. 현재 값은 실험용이며 수정 예정이다. |
-| [`clint_set_next_timer`](../bsp/clint.c) | ❌ 미충족 | §1.1, §3.1 타이머 ISR, §5.9, §6.8 | 다음 비교값을 예약하는 로직은 있으나 잘못된 `TIMER_INTERVAL`을 사용하므로 명세의 1ms 주기와 다르다. |
+| [`clint_timer_init`](../bsp/clint.c) | ◐ 부분 | §1.1, §3.3 Step 3, §5.9, §6.8 | 10MHz·1ms 기준 `TIMER_INTERVAL=10000ULL`은 정렬되어 있다. timer overrun 정책과 `timer_tick_step()` 연결은 남아 있다. |
+| [`clint_set_next_timer`](../bsp/clint.c) | ◐ 부분 | §1.1, §3.1 타이머 ISR, §5.9, §6.8 | 10MHz·1ms 간격은 정렬되어 있다. 명세의 누적 `mtimecmp` 및 overrun 재동기화 정책은 아직 구현되지 않았다. |
 | [`uart_init`](../bsp/uart.c) | ✅ 충족 | §1.1 UART0, §5.10, §6.8 | 16550 UART의 divisor, 8-N-1, FIFO 설정을 수행한다. |
 | [`uart_putc`](../bsp/uart.c) | ✅ 충족 | §2 INV-ERR-008, §5.10 | TX 준비 비트를 `UART_TX_POLL_LIMIT`회까지만 확인하고 상한 초과 시 오류를 반환한다. |
 | [`uart_puts`](../bsp/uart.c) | ✅ 충족 | §2 INV-ERR-008, §5.10 | `uart_putc()`를 사용해 송신하며 CRLF 변환을 포함한 출력량을 `UART_PUTS_MAX_BYTES`(128)바이트로 제한한다. NULL, 문자열 초과, 문자 전송 타임아웃을 구분한다. |
