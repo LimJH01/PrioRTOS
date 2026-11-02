@@ -1,5 +1,12 @@
 # IPCP 구현 변경 기록
 
+> **문서 상태:** 이 문서의 아래 기존 절은 과거 `IpcpMutex_t` 기반 구현의 변경 기록이다.
+> 현재 기준 구현은 `kernel/mutex.c`의 정적 `mutex_t`와
+> `TCB_t::held_mutex` 단일 소유권 모델이다. 현재 API는
+> `mutex_init(mutex_t *, uint8_t)`, `mutex_lock(mutex_t *)`,
+> `mutex_unlock(mutex_t *)`이며, ID·사용자 bitmap·waiter handoff·동적 IPCP
+> 설정 경로는 제거되었다.
+
 이 문서는 IPCP 구현 작업에서 기존 코드의 어느 부분이 바뀌었는지, 새 코드가 어떤 책임을 맡는지, 모듈 간 동작이 어떻게 이어지는지 기록한다. 기록은 현재 작업 트리의 변경을 기준으로 하며, 이 문서가 추가된 시점의 구현은 빌드와 QEMU 기본 실행을 확인했지만 IPCP 전용 자동 테스트는 아직 없다.
 
 ## 1. 변경 요약

@@ -56,19 +56,6 @@ typedef enum {
 } TaskState_t;
 
 /*
- * 정적 mutex의 소유권/priority shadowing 상태.
- * mutex 하나는 8바이트로 고정되며, 보유 mutex 연결 리스트는 TCB_t의
- * held_mutex에서 시작해 prev_mutex 방향으로 연결된다.
- */
-typedef struct mutex {
-    uint8_t ceiling_prio; // 이 mutex가 요구하는 ceiling priority
-    uint8_t saved_prio;   // lock 직전 소유 태스크의 유효 priority
-    uint8_t locked;       // 0: 미획득, 1: 현재 태스크가 획득
-    uint8_t padding;      // 32비트 정렬 및 8바이트 레이아웃을 위한 예약 바이트
-    struct mutex *prev_mutex; // 중첩 mutex의 이전 항목(LIFO)
-} mutex_t;
-
-/*
  * 태스크 슬롯 하나의 커널 관리 블록(Task Control Block).
  * task_id == base_priority == 슬롯 번호라는 직접 매핑을 유지한다.
  * priority만 mutex ceiling에 의해 일시적으로 변경될 수 있다.
@@ -122,14 +109,12 @@ __attribute__((noreturn)) void stack_overflow_panic(void);
 //sched.c 내부 함수
 void sched_schedule(void);
 void sched_request_reschedule(void);
+void mutex_watchdog_tick(void);
 uint32_t sched_irq_save(void);
 void sched_irq_restore(uint32_t saved_mstatus);
 bool sched_block_current(uint32_t saved_mstatus);
 bool sched_wake_task(uint32_t slot);
+TCB_t *sched_select_next_task(void);
 uint32_t sched_highest_priority_slot(uint32_t task_bitmap);
-
-// IPCP configuration and scheduler integration.
-bool ipcp_validate_configuration(void);
-void ipcp_scheduler_started(void);
 
 #endif

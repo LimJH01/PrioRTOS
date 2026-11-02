@@ -4,7 +4,17 @@
 
 #include <stdint.h>
 
-#define MAX_MUTEXES 8U
+/*
+ * 정적 Mutex 상태. 응용 코드는 이 타입으로 Mutex를 전역 또는 static으로
+ * 선언하고, mutex_init()에서 ceiling만 설정한다.
+ */
+typedef struct mutex {
+    uint8_t ceiling_prio;
+    uint8_t saved_prio;
+    uint8_t locked;
+    uint8_t padding;
+    struct mutex *prev_mutex;
+} mutex_t;
 
 typedef enum {
     TASK_CREATE_OK = 0,
@@ -35,16 +45,10 @@ typedef enum {
 
 typedef enum {
     MUTEX_OK = 0,
-    MUTEX_ERR_INVALID_ID = -1,
-    MUTEX_ERR_INVALID_ARGUMENT = -2,
-    MUTEX_ERR_NOT_OWNER = -3,
-    MUTEX_ERR_RECURSIVE = -4,
-    MUTEX_ERR_INVALID_CONTEXT = -5,
-    MUTEX_ERR_INVALID_WAITER = -6,
-    MUTEX_ERR_NOT_CONFIGURED = -7,
-    MUTEX_ERR_INVALID_USERS = -8,
-    MUTEX_ERR_CONFIGURATION_FROZEN = -9,
-    MUTEX_ERR_ALREADY_CONFIGURED = -10
+    MUTEX_ERR_INVALID_ARGUMENT = -1,
+    MUTEX_ERR_INVALID_CONTEXT = -2,
+    MUTEX_ERR_INVALID_CEILING = -3,
+    MUTEX_ERR_INVALID_BUDGET = -4
 } MutexResult_t;
 
 // 사용자가 호출 가능한 커널 공개 API 목록
@@ -55,14 +59,15 @@ void exit_critical(void);
 TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes);
 void priortos_start(void);
 void task_yield(void);
+void timer_tick_step(void);
+uint64_t get_tick_count(void);
 SemaphoreResult_t semaphore_init(Semaphore_t *sem, uint32_t initial_count);
 SemaphoreResult_t semaphore_wait(Semaphore_t *sem);
 SemaphoreResult_t semaphore_signal(Semaphore_t *sem);
 
-// Configure a fixed mutex ID with the bitmap of task slots allowed to use it.
-// Call during initialization, after creating all listed tasks and before start.
-MutexResult_t mutex_configure(uint32_t mutex_id, uint32_t user_slots);
-MutexResult_t mutex_lock(uint32_t mutex_id);
-MutexResult_t mutex_unlock(uint32_t mutex_id);
+MutexResult_t mutex_init(mutex_t *mutex, uint8_t ceiling_prio);
+MutexResult_t mutex_set_execution_budget(mutex_t *mutex, uint32_t budget_ticks);
+MutexResult_t mutex_lock(mutex_t *mutex);
+MutexResult_t mutex_unlock(mutex_t *mutex);
 
 #endif

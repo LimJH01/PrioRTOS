@@ -16,8 +16,13 @@ uint32_t g_ready_bitmap = 0;
  * 최하위 set bit(LSB)가 가장 높은 우선순위라는 직접 매핑 규칙을 이용해
  * 준비/대기 bitmap에서 슬롯을 O(1)으로 선택한다.
  *
+ * 빈 bitmap도 별도 분기 없이 처리하기 위해 IDLE 슬롯인 bit 31을
+ * Guard Bit으로 합성한다. 따라서 task_bitmap이 0이면 selector는
+ * 자동으로 slot 31을 반환한다.
+ *
  * 0x077CB531은 32비트 De Bruijn multiplier이며, LUT는 고립된 한 비트의
- * 인덱스를 0..31 슬롯 번호로 변환한다.
+ * 인덱스를 0..31 슬롯 번호로 변환한다. 이 함수의 반복문과 bitmap 순회는
+ * 없으므로 선택 비용은 입력 bitmap과 무관하게 일정하다.
  */
 static const uint8_t debruijn_lsb_index[32] = {
     0U,  1U,  28U, 2U,  29U, 14U, 24U, 3U,
@@ -27,14 +32,25 @@ static const uint8_t debruijn_lsb_index[32] = {
 };
 
 uint32_t sched_highest_priority_slot(uint32_t task_bitmap) {
-    if (task_bitmap == 0U) {
-        return MAX_TASKS;
-    }
-
-    uint32_t isolated_lsb = task_bitmap & (0U - task_bitmap);
+    const uint32_t safe_bitmap = task_bitmap | (1U << IDLE_TASK_PRIORITY);
+    const uint32_t isolated_lsb = safe_bitmap & (0U - safe_bitmap);
     uint32_t lut_index =
         (isolated_lsb * 0x077CB531U) >> 27;
     return debruijn_lsb_index[lut_index];
+}
+
+/*
+ * 현재 ready bitmap에서 다음 태스크를 선택하고 그 태스크의 READY bit를
+ * 제거한다. bitmap이 비어 있어도 Guard Bit 덕분에 IDLE TCB(slot 31)이
+ * 선택된다.
+ *
+ * 이 함수는 TCB 상태를 RUNNING으로 바꾸지 않는다. 호출자가 현재 태스크의
+ * 상태를 먼저 정리한 뒤, 반환된 TCB를 RUNNING으로 전환해야 한다.
+ */
+TCB_t *sched_select_next_task(void) {
+    const uint32_t next_slot = sched_highest_priority_slot(g_ready_bitmap);
+    g_ready_bitmap &= ~(1U << next_slot);
+    return &g_tcbs[next_slot];
 }
 
 // 태스크가 while(1)을 탈출했을 때 kernel_panic 발생
@@ -138,17 +154,11 @@ void priortos_start(void) {
         kernel_panic("failed to create idle task");
     }
 
-    // 2. 준비 비트맵에서 가장 우선순위가 높은(번호가 가장 작은) 태스크 슬롯 선정 (LSB 드 브루인)
-    uint32_t top_prio = sched_highest_priority_slot(g_ready_bitmap);
-    if (top_prio >= MAX_TASKS) {
-        kernel_panic("scheduler has no ready tasks");
-    }
+    // 2. Guard Bit selector로 첫 번째 실행 태스크를 선택한다.
+    TCB_t *first_task = sched_select_next_task();
 
-    // 3. 선택된 최초 태스크는 준비 비트맵에서 비트를 제거하고 Running으로 전이
-    g_ready_bitmap &= ~(1U << top_prio);
-
-    // 4. 직접 매핑으로 TCB 확정
-    g_current_tcb = &g_tcbs[top_prio];
+    // 3. 직접 매핑으로 TCB를 확정하고 RUNNING으로 전이한다.
+    g_current_tcb = first_task;
     g_current_tcb->state = TASK_STATE_RUNNING;
 
     // 5. 최초 태스크 문맥 복원 및 전역 인터럽트 활성화 (mret)
@@ -157,33 +167,44 @@ void priortos_start(void) {
 
 
 void sched_schedule(){
-    if (g_ready_bitmap == 0){
-        kernel_panic("scheduler has no ready tasks");
-    }
+    TCB_t *current = g_current_tcb;
 
-    uint32_t top_slot = sched_highest_priority_slot(g_ready_bitmap);
-    if (top_slot >= MAX_TASKS) {
-        kernel_panic("scheduler has no ready tasks");
-    }
-
-    TCB_t *next = &g_tcbs[top_slot];
-    if (g_current_tcb != NULL &&
-        g_current_tcb->state == TASK_STATE_RUNNING &&
-        next->priority >= g_current_tcb->priority) {
+    /*
+     * Mutex 보유 구간에서는 Timer/MSIP가 이미 pending이어도 문맥을
+     * 바꾸지 않는다. 최외곽 mutex_unlock() 뒤에 다시 평가한다.
+     */
+    if (current != NULL &&
+        current->state == TASK_STATE_RUNNING &&
+        current->held_mutex != NULL) {
         return;
     }
 
-    if (g_current_tcb != NULL &&
-        g_current_tcb->state == TASK_STATE_RUNNING) {
-        g_current_tcb->state = TASK_STATE_READY;
+    const uint32_t next_slot = sched_highest_priority_slot(g_ready_bitmap);
+    TCB_t *next = &g_tcbs[next_slot];
+
+    /*
+     * 현재 태스크가 계속 실행 가능한 경우에는 더 높은 우선순위가
+     * 있을 때만 선점한다. 동률은 Round-Robin 없이 현재 태스크를 유지한다.
+     */
+    if (current != NULL && current->state == TASK_STATE_RUNNING &&
+        next->priority >= current->priority) {
+        return;
     }
+
+    /*
+     * 현재 태스크가 선점되는 경우 다시 READY 집합에 넣는다.
+     * BLOCKED 태스크는 이미 block 경로에서 bit를 제거했으므로 복구하지
+     * 않는다. 직접 매핑 규칙상 task_id가 bitmap bit 번호다.
+     */
+    if (current != NULL && current->state == TASK_STATE_RUNNING) {
+        current->state = TASK_STATE_READY;
+        g_ready_bitmap |= (1U << current->task_id);
+    }
+
+    /* 선택된 태스크의 READY bit 제거와 포인터 변경을 한 곳에서 수행한다. */
+    next = sched_select_next_task();
     g_current_tcb = next;
     g_current_tcb->state = TASK_STATE_RUNNING;
-
-    // 선택된 최초 태스크는 준비 비트맵에서 비트를 제거하고 Running으로 전이
-    g_ready_bitmap &= ~(1U << top_slot);
-
-    
 }
 
 uint32_t sched_irq_save(void) {
@@ -208,6 +229,10 @@ bool sched_block_current(uint32_t saved_mstatus) {
         return false;
     }
 
+    if (self->held_mutex != NULL || self->task_id == IDLE_TASK_PRIORITY) {
+        kernel_panic("ERR_ILLEGAL_BLOCKING");
+    }
+
     self->state = TASK_STATE_BLOCKED;
     uint32_t slot = (uint32_t)(self - g_tcbs);
     g_ready_bitmap &= ~(1U << slot);
@@ -228,5 +253,10 @@ bool sched_wake_task(uint32_t slot) {
 }
 
 void task_yield(void) {
+    if (g_current_tcb == NULL ||
+        g_current_tcb->task_id == IDLE_TASK_PRIORITY ||
+        g_current_tcb->held_mutex != NULL) {
+        kernel_panic("ERR_ILLEGAL_YIELD");
+    }
     sched_request_reschedule();
 }
