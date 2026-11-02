@@ -187,21 +187,14 @@ void sched_schedule(){
 }
 
 uint32_t sched_irq_save(void) {
-    uint32_t saved_mstatus;
-    uint32_t mie_mask = 1U << 3;
-    asm volatile ("csrrc %0, mstatus, %1"
-                  : "=r"(saved_mstatus)
-                  : "r"(mie_mask)
-                  : "memory");
-    return saved_mstatus;
+    /* Compatibility wrapper for existing atomic scheduler/IPC paths. */
+    enter_critical();
+    return 0U;
 }
 
 void sched_irq_restore(uint32_t saved_mstatus) {
-    if (saved_mstatus & (1U << 3)) {
-        asm volatile ("csrs mstatus, %0"
-                      :: "r"(1U << 3)
-                      : "memory");
-    }
+    (void)saved_mstatus;
+    exit_critical();
 }
 
 void sched_request_reschedule(void) {
