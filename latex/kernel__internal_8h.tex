@@ -1,0 +1,404 @@
+\doxysection{kernel/include/kernel\+\_\+internal.h File Reference}
+\hypertarget{kernel__internal_8h}{}\label{kernel__internal_8h}\index{kernel/include/kernel\_internal.h@{kernel/include/kernel\_internal.h}}
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include "{}prio\+\_\+rtos.\+h"{}}\newline
+{\ttfamily \#include "{}stack\+\_\+guard.\+h"{}}\newline
+Include dependency graph for kernel\+\_\+internal.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structTaskContext__t}{Task\+Context\+\_\+t}}
+\item 
+struct \mbox{\hyperlink{structTCB}{TCB}}
+\item 
+struct \mbox{\hyperlink{structCrashDump__t}{Crash\+Dump\+\_\+t}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}}~32U
+\item 
+\#define \mbox{\hyperlink{kernel__internal_8h_ac1c1b4b142cffef84f0914bc265f9016}{OS\+\_\+\+MAX\+\_\+\+MUTEX\+\_\+\+NESTING}}~4U
+\item 
+\#define \mbox{\hyperlink{kernel__internal_8h_a1de3e0f121217b19f7730206535503af}{IDLE\+\_\+\+TASK\+\_\+\+PRIORITY}}~(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}} -\/ 1U)
+\item 
+\#define \mbox{\hyperlink{kernel__internal_8h_a81e3b7a44caf87cdffee98fe20cd45da}{MAX\+\_\+\+PRIORITY}}~(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}} -\/ 1U)
+\item 
+\#define \mbox{\hyperlink{kernel__internal_8h_aac747bed84189f8cfa509b94d488e622}{MAX\+\_\+\+TASKS}}~\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{structTCB}{TCB}} \mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346a}{Task\+State\+\_\+t}} \{ \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa14db5fa7bd055b6330ef748f72067e84}{TASK\+\_\+\+STATE\+\_\+\+UNUSED}} = 0
+, \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa7599a95a86e9c5e3d5a968a793cbf6a0}{TASK\+\_\+\+STATE\+\_\+\+READY}} = 1
+, \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa169adc0116f5c61af55d2dd88709ea4e}{TASK\+\_\+\+STATE\+\_\+\+RUNNING}} = 2
+, \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa698acec7b2725136b8a9ec7f2135effb}{TASK\+\_\+\+STATE\+\_\+\+BLOCKED}} = 3
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{kernel__internal_8h_a170912052249b913e2f1e5a29c8d33bf}{prio\+\_\+context\+\_\+first\+\_\+switch}} (\mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} \texorpdfstring{$\ast$}{*}next)
+\item 
+\mbox{\hyperlink{kernel__internal_8h_aa048bff185535d34fec584d4c7a5bcd7}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}} ((noreturn)) void stack\+\_\+overflow\+\_\+panic(void)
+\item 
+void \mbox{\hyperlink{kernel__internal_8h_a84cbe33479159518535a54988e337531}{sched\+\_\+schedule}} (void)
+\item 
+void \mbox{\hyperlink{kernel__internal_8h_a02644dfb0aefa8688e9514e8100b0e52}{sched\+\_\+request\+\_\+reschedule}} (void)
+\item 
+void \mbox{\hyperlink{kernel__internal_8h_aa420ffc27b9caa622f4ac828dab96fa2}{mutex\+\_\+watchdog\+\_\+tick}} (void)
+\item 
+uint32\+\_\+t \mbox{\hyperlink{kernel__internal_8h_a5074d8e7087569a25d6d98e2b065221a}{sched\+\_\+irq\+\_\+save}} (void)
+\item 
+void \mbox{\hyperlink{kernel__internal_8h_a441fd33c20a4c8362b8c6513403550cf}{sched\+\_\+irq\+\_\+restore}} (uint32\+\_\+t saved\+\_\+mstatus)
+\item 
+bool \mbox{\hyperlink{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e}{sched\+\_\+block\+\_\+current}} (uint32\+\_\+t saved\+\_\+mstatus)
+\item 
+bool \mbox{\hyperlink{kernel__internal_8h_a9fa10be76636c462e93e8db4af9f51f3}{sched\+\_\+wake\+\_\+task}} (uint32\+\_\+t slot)
+\item 
+\mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8}{sched\+\_\+select\+\_\+next\+\_\+task}} (void)
+\item 
+uint32\+\_\+t \mbox{\hyperlink{kernel__internal_8h_a11cf9058a5cfba599bd54576cac750da}{sched\+\_\+highest\+\_\+priority\+\_\+slot}} (uint32\+\_\+t task\+\_\+bitmap)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} \mbox{\hyperlink{kernel__internal_8h_a1dfd58bd16414a969f5bcabd4d61126b}{g\+\_\+tcbs}} \mbox{[}\mbox{\hyperlink{kernel__internal_8h_aac747bed84189f8cfa509b94d488e622}{MAX\+\_\+\+TASKS}}\mbox{]}
+\item 
+\mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{kernel__internal_8h_a7d8bb6dc60bfac4cb1bec2610f86801f}{g\+\_\+current\+\_\+tcb}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{kernel__internal_8h_a3257021f81dcc4315638ca17bcecf837}{g\+\_\+ready\+\_\+bitmap}}
+\item 
+\mbox{\hyperlink{structCrashDump__t}{Crash\+Dump\+\_\+t}} \mbox{\hyperlink{kernel__internal_8h_a5d9345a4f5f9985b65bf5c8292764afc}{g\+\_\+crash\+\_\+dump}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{kernel__internal_8h_a1de3e0f121217b19f7730206535503af}\label{kernel__internal_8h_a1de3e0f121217b19f7730206535503af} 
+\index{kernel\_internal.h@{kernel\_internal.h}!IDLE\_TASK\_PRIORITY@{IDLE\_TASK\_PRIORITY}}
+\index{IDLE\_TASK\_PRIORITY@{IDLE\_TASK\_PRIORITY}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{IDLE\_TASK\_PRIORITY}{IDLE\_TASK\_PRIORITY}}
+{\footnotesize\ttfamily \#define IDLE\+\_\+\+TASK\+\_\+\+PRIORITY~(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}} -\/ 1U)}
+
+\Hypertarget{kernel__internal_8h_a81e3b7a44caf87cdffee98fe20cd45da}\label{kernel__internal_8h_a81e3b7a44caf87cdffee98fe20cd45da} 
+\index{kernel\_internal.h@{kernel\_internal.h}!MAX\_PRIORITY@{MAX\_PRIORITY}}
+\index{MAX\_PRIORITY@{MAX\_PRIORITY}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{MAX\_PRIORITY}{MAX\_PRIORITY}}
+{\footnotesize\ttfamily \#define MAX\+\_\+\+PRIORITY~(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}} -\/ 1U)}
+
+\Hypertarget{kernel__internal_8h_aac747bed84189f8cfa509b94d488e622}\label{kernel__internal_8h_aac747bed84189f8cfa509b94d488e622} 
+\index{kernel\_internal.h@{kernel\_internal.h}!MAX\_TASKS@{MAX\_TASKS}}
+\index{MAX\_TASKS@{MAX\_TASKS}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{MAX\_TASKS}{MAX\_TASKS}}
+{\footnotesize\ttfamily \#define MAX\+\_\+\+TASKS~\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}}}
+
+\Hypertarget{kernel__internal_8h_ac1c1b4b142cffef84f0914bc265f9016}\label{kernel__internal_8h_ac1c1b4b142cffef84f0914bc265f9016} 
+\index{kernel\_internal.h@{kernel\_internal.h}!OS\_MAX\_MUTEX\_NESTING@{OS\_MAX\_MUTEX\_NESTING}}
+\index{OS\_MAX\_MUTEX\_NESTING@{OS\_MAX\_MUTEX\_NESTING}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{OS\_MAX\_MUTEX\_NESTING}{OS\_MAX\_MUTEX\_NESTING}}
+{\footnotesize\ttfamily \#define OS\+\_\+\+MAX\+\_\+\+MUTEX\+\_\+\+NESTING~4U}
+
+\Hypertarget{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}\label{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc} 
+\index{kernel\_internal.h@{kernel\_internal.h}!OS\_MAX\_TASKS@{OS\_MAX\_TASKS}}
+\index{OS\_MAX\_TASKS@{OS\_MAX\_TASKS}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{OS\_MAX\_TASKS}{OS\_MAX\_TASKS}}
+{\footnotesize\ttfamily \#define OS\+\_\+\+MAX\+\_\+\+TASKS~32U}
+
+
+
+\doxysubsection{Typedef Documentation}
+\Hypertarget{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}\label{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58} 
+\index{kernel\_internal.h@{kernel\_internal.h}!TCB\_t@{TCB\_t}}
+\index{TCB\_t@{TCB\_t}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{TCB\_t}{TCB\_t}}
+{\footnotesize\ttfamily typedef struct \mbox{\hyperlink{structTCB}{TCB}} \mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}}}
+
+
+
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346a}\label{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346a} 
+\index{kernel\_internal.h@{kernel\_internal.h}!TaskState\_t@{TaskState\_t}}
+\index{TaskState\_t@{TaskState\_t}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{TaskState\_t}{TaskState\_t}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346a}{Task\+State\+\_\+t}}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TASK\_STATE\_UNUSED@{TASK\_STATE\_UNUSED}!kernel\_internal.h@{kernel\_internal.h}}\index{kernel\_internal.h@{kernel\_internal.h}!TASK\_STATE\_UNUSED@{TASK\_STATE\_UNUSED}}}\Hypertarget{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa14db5fa7bd055b6330ef748f72067e84}\label{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa14db5fa7bd055b6330ef748f72067e84} 
+TASK\+\_\+\+STATE\+\_\+\+UNUSED&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TASK\_STATE\_READY@{TASK\_STATE\_READY}!kernel\_internal.h@{kernel\_internal.h}}\index{kernel\_internal.h@{kernel\_internal.h}!TASK\_STATE\_READY@{TASK\_STATE\_READY}}}\Hypertarget{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa7599a95a86e9c5e3d5a968a793cbf6a0}\label{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa7599a95a86e9c5e3d5a968a793cbf6a0} 
+TASK\+\_\+\+STATE\+\_\+\+READY&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TASK\_STATE\_RUNNING@{TASK\_STATE\_RUNNING}!kernel\_internal.h@{kernel\_internal.h}}\index{kernel\_internal.h@{kernel\_internal.h}!TASK\_STATE\_RUNNING@{TASK\_STATE\_RUNNING}}}\Hypertarget{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa169adc0116f5c61af55d2dd88709ea4e}\label{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa169adc0116f5c61af55d2dd88709ea4e} 
+TASK\+\_\+\+STATE\+\_\+\+RUNNING&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TASK\_STATE\_BLOCKED@{TASK\_STATE\_BLOCKED}!kernel\_internal.h@{kernel\_internal.h}}\index{kernel\_internal.h@{kernel\_internal.h}!TASK\_STATE\_BLOCKED@{TASK\_STATE\_BLOCKED}}}\Hypertarget{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa698acec7b2725136b8a9ec7f2135effb}\label{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa698acec7b2725136b8a9ec7f2135effb} 
+TASK\+\_\+\+STATE\+\_\+\+BLOCKED&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\doxysubsection{Function Documentation}
+\Hypertarget{kernel__internal_8h_aa048bff185535d34fec584d4c7a5bcd7}\label{kernel__internal_8h_aa048bff185535d34fec584d4c7a5bcd7} 
+\index{kernel\_internal.h@{kernel\_internal.h}!\_\_attribute\_\_@{\_\_attribute\_\_}}
+\index{\_\_attribute\_\_@{\_\_attribute\_\_}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{\_\_attribute\_\_()}{\_\_attribute\_\_()}}
+{\footnotesize\ttfamily \+\_\+\+\_\+attribute\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{(noreturn)}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_aa048bff185535d34fec584d4c7a5bcd7_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_aa420ffc27b9caa622f4ac828dab96fa2}\label{kernel__internal_8h_aa420ffc27b9caa622f4ac828dab96fa2} 
+\index{kernel\_internal.h@{kernel\_internal.h}!mutex\_watchdog\_tick@{mutex\_watchdog\_tick}}
+\index{mutex\_watchdog\_tick@{mutex\_watchdog\_tick}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{mutex\_watchdog\_tick()}{mutex\_watchdog\_tick()}}
+{\footnotesize\ttfamily void mutex\+\_\+watchdog\+\_\+tick (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_aa420ffc27b9caa622f4ac828dab96fa2_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_aa420ffc27b9caa622f4ac828dab96fa2_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a170912052249b913e2f1e5a29c8d33bf}\label{kernel__internal_8h_a170912052249b913e2f1e5a29c8d33bf} 
+\index{kernel\_internal.h@{kernel\_internal.h}!prio\_context\_first\_switch@{prio\_context\_first\_switch}}
+\index{prio\_context\_first\_switch@{prio\_context\_first\_switch}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{prio\_context\_first\_switch()}{prio\_context\_first\_switch()}}
+{\footnotesize\ttfamily void prio\+\_\+context\+\_\+first\+\_\+switch (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} \texorpdfstring{$\ast$}{*}}]{next }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a170912052249b913e2f1e5a29c8d33bf_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e}\label{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_block\_current@{sched\_block\_current}}
+\index{sched\_block\_current@{sched\_block\_current}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_block\_current()}{sched\_block\_current()}}
+{\footnotesize\ttfamily bool sched\+\_\+block\+\_\+current (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{saved\+\_\+mstatus }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a11cf9058a5cfba599bd54576cac750da}\label{kernel__internal_8h_a11cf9058a5cfba599bd54576cac750da} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_highest\_priority\_slot@{sched\_highest\_priority\_slot}}
+\index{sched\_highest\_priority\_slot@{sched\_highest\_priority\_slot}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_highest\_priority\_slot()}{sched\_highest\_priority\_slot()}}
+{\footnotesize\ttfamily uint32\+\_\+t sched\+\_\+highest\+\_\+priority\+\_\+slot (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{task\+\_\+bitmap }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a11cf9058a5cfba599bd54576cac750da_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a441fd33c20a4c8362b8c6513403550cf}\label{kernel__internal_8h_a441fd33c20a4c8362b8c6513403550cf} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_irq\_restore@{sched\_irq\_restore}}
+\index{sched\_irq\_restore@{sched\_irq\_restore}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_irq\_restore()}{sched\_irq\_restore()}}
+{\footnotesize\ttfamily void sched\+\_\+irq\+\_\+restore (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{saved\+\_\+mstatus }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=293pt]{kernel__internal_8h_a441fd33c20a4c8362b8c6513403550cf_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a441fd33c20a4c8362b8c6513403550cf_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a5074d8e7087569a25d6d98e2b065221a}\label{kernel__internal_8h_a5074d8e7087569a25d6d98e2b065221a} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_irq\_save@{sched\_irq\_save}}
+\index{sched\_irq\_save@{sched\_irq\_save}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_irq\_save()}{sched\_irq\_save()}}
+{\footnotesize\ttfamily uint32\+\_\+t sched\+\_\+irq\+\_\+save (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=288pt]{kernel__internal_8h_a5074d8e7087569a25d6d98e2b065221a_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a5074d8e7087569a25d6d98e2b065221a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a02644dfb0aefa8688e9514e8100b0e52}\label{kernel__internal_8h_a02644dfb0aefa8688e9514e8100b0e52} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_request\_reschedule@{sched\_request\_reschedule}}
+\index{sched\_request\_reschedule@{sched\_request\_reschedule}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_request\_reschedule()}{sched\_request\_reschedule()}}
+{\footnotesize\ttfamily void sched\+\_\+request\+\_\+reschedule (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a02644dfb0aefa8688e9514e8100b0e52_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a02644dfb0aefa8688e9514e8100b0e52_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a84cbe33479159518535a54988e337531}\label{kernel__internal_8h_a84cbe33479159518535a54988e337531} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_schedule@{sched\_schedule}}
+\index{sched\_schedule@{sched\_schedule}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_schedule()}{sched\_schedule()}}
+{\footnotesize\ttfamily void sched\+\_\+schedule (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a84cbe33479159518535a54988e337531_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=288pt]{kernel__internal_8h_a84cbe33479159518535a54988e337531_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8}\label{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_select\_next\_task@{sched\_select\_next\_task}}
+\index{sched\_select\_next\_task@{sched\_select\_next\_task}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_select\_next\_task()}{sched\_select\_next\_task()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} \texorpdfstring{$\ast$}{*} sched\+\_\+select\+\_\+next\+\_\+task (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{kernel__internal_8h_a9fa10be76636c462e93e8db4af9f51f3}\label{kernel__internal_8h_a9fa10be76636c462e93e8db4af9f51f3} 
+\index{kernel\_internal.h@{kernel\_internal.h}!sched\_wake\_task@{sched\_wake\_task}}
+\index{sched\_wake\_task@{sched\_wake\_task}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{sched\_wake\_task()}{sched\_wake\_task()}}
+{\footnotesize\ttfamily bool sched\+\_\+wake\+\_\+task (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{slot }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{kernel__internal_8h_a9fa10be76636c462e93e8db4af9f51f3_icgraph}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Variable Documentation}
+\Hypertarget{kernel__internal_8h_a5d9345a4f5f9985b65bf5c8292764afc}\label{kernel__internal_8h_a5d9345a4f5f9985b65bf5c8292764afc} 
+\index{kernel\_internal.h@{kernel\_internal.h}!g\_crash\_dump@{g\_crash\_dump}}
+\index{g\_crash\_dump@{g\_crash\_dump}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{g\_crash\_dump}{g\_crash\_dump}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structCrashDump__t}{Crash\+Dump\+\_\+t}} g\+\_\+crash\+\_\+dump\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{kernel__internal_8h_a7d8bb6dc60bfac4cb1bec2610f86801f}\label{kernel__internal_8h_a7d8bb6dc60bfac4cb1bec2610f86801f} 
+\index{kernel\_internal.h@{kernel\_internal.h}!g\_current\_tcb@{g\_current\_tcb}}
+\index{g\_current\_tcb@{g\_current\_tcb}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{g\_current\_tcb}{g\_current\_tcb}}
+{\footnotesize\ttfamily \mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}}\texorpdfstring{$\ast$}{*} g\+\_\+current\+\_\+tcb\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{kernel__internal_8h_a3257021f81dcc4315638ca17bcecf837}\label{kernel__internal_8h_a3257021f81dcc4315638ca17bcecf837} 
+\index{kernel\_internal.h@{kernel\_internal.h}!g\_ready\_bitmap@{g\_ready\_bitmap}}
+\index{g\_ready\_bitmap@{g\_ready\_bitmap}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{g\_ready\_bitmap}{g\_ready\_bitmap}}
+{\footnotesize\ttfamily uint32\+\_\+t g\+\_\+ready\+\_\+bitmap\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{kernel__internal_8h_a1dfd58bd16414a969f5bcabd4d61126b}\label{kernel__internal_8h_a1dfd58bd16414a969f5bcabd4d61126b} 
+\index{kernel\_internal.h@{kernel\_internal.h}!g\_tcbs@{g\_tcbs}}
+\index{g\_tcbs@{g\_tcbs}!kernel\_internal.h@{kernel\_internal.h}}
+\doxysubsubsection{\texorpdfstring{g\_tcbs}{g\_tcbs}}
+{\footnotesize\ttfamily \mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\+\_\+t}} g\+\_\+tcbs\mbox{[}\mbox{\hyperlink{kernel__internal_8h_aac747bed84189f8cfa509b94d488e622}{MAX\+\_\+\+TASKS}}\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+

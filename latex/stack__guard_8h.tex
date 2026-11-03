@@ -1,0 +1,56 @@
+\doxysection{kernel/include/stack\+\_\+guard.h File Reference}
+\hypertarget{stack__guard_8h}{}\label{stack__guard_8h}\index{kernel/include/stack\_guard.h@{kernel/include/stack\_guard.h}}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{stack__guard_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{stack__guard_8h_aa1d6779d264c177ed8ee232d44d71941}{STACK\+\_\+\+GUARD\+\_\+\+SIZE}}~16
+\item 
+\#define \mbox{\hyperlink{stack__guard_8h_aa6f4b6e9d5ab8dad6bea932e8f664f62}{STACK\+\_\+\+TRAP\+\_\+\+FRAME\+\_\+\+SIZE}}~128
+\item 
+\#define \mbox{\hyperlink{stack__guard_8h_a88a35e63716666d074f01930c1a9a5c1}{TCB\+\_\+\+STACK\+\_\+\+BASE\+\_\+\+OFFSET}}~16
+\item 
+\#define \mbox{\hyperlink{stack__guard_8h_a645b376dbefcbe3dbf658270bb6705c7}{SYSTEM\+\_\+\+STACK\+\_\+\+SIZE\+\_\+\+BYTES}}~1024U
+\item 
+\#define \mbox{\hyperlink{stack__guard_8h_acf8a8c21a8087506e7f903632eec7c05}{STACK\+\_\+\+GUARD\+\_\+\+WORD}}~0x5\+A5\+A5\+A5A
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{stack__guard_8h_aa1d6779d264c177ed8ee232d44d71941}\label{stack__guard_8h_aa1d6779d264c177ed8ee232d44d71941} 
+\index{stack\_guard.h@{stack\_guard.h}!STACK\_GUARD\_SIZE@{STACK\_GUARD\_SIZE}}
+\index{STACK\_GUARD\_SIZE@{STACK\_GUARD\_SIZE}!stack\_guard.h@{stack\_guard.h}}
+\doxysubsubsection{\texorpdfstring{STACK\_GUARD\_SIZE}{STACK\_GUARD\_SIZE}}
+{\footnotesize\ttfamily \#define STACK\+\_\+\+GUARD\+\_\+\+SIZE~16}
+
+\Hypertarget{stack__guard_8h_acf8a8c21a8087506e7f903632eec7c05}\label{stack__guard_8h_acf8a8c21a8087506e7f903632eec7c05} 
+\index{stack\_guard.h@{stack\_guard.h}!STACK\_GUARD\_WORD@{STACK\_GUARD\_WORD}}
+\index{STACK\_GUARD\_WORD@{STACK\_GUARD\_WORD}!stack\_guard.h@{stack\_guard.h}}
+\doxysubsubsection{\texorpdfstring{STACK\_GUARD\_WORD}{STACK\_GUARD\_WORD}}
+{\footnotesize\ttfamily \#define STACK\+\_\+\+GUARD\+\_\+\+WORD~0x5\+A5\+A5\+A5A}
+
+\Hypertarget{stack__guard_8h_aa6f4b6e9d5ab8dad6bea932e8f664f62}\label{stack__guard_8h_aa6f4b6e9d5ab8dad6bea932e8f664f62} 
+\index{stack\_guard.h@{stack\_guard.h}!STACK\_TRAP\_FRAME\_SIZE@{STACK\_TRAP\_FRAME\_SIZE}}
+\index{STACK\_TRAP\_FRAME\_SIZE@{STACK\_TRAP\_FRAME\_SIZE}!stack\_guard.h@{stack\_guard.h}}
+\doxysubsubsection{\texorpdfstring{STACK\_TRAP\_FRAME\_SIZE}{STACK\_TRAP\_FRAME\_SIZE}}
+{\footnotesize\ttfamily \#define STACK\+\_\+\+TRAP\+\_\+\+FRAME\+\_\+\+SIZE~128}
+
+\Hypertarget{stack__guard_8h_a645b376dbefcbe3dbf658270bb6705c7}\label{stack__guard_8h_a645b376dbefcbe3dbf658270bb6705c7} 
+\index{stack\_guard.h@{stack\_guard.h}!SYSTEM\_STACK\_SIZE\_BYTES@{SYSTEM\_STACK\_SIZE\_BYTES}}
+\index{SYSTEM\_STACK\_SIZE\_BYTES@{SYSTEM\_STACK\_SIZE\_BYTES}!stack\_guard.h@{stack\_guard.h}}
+\doxysubsubsection{\texorpdfstring{SYSTEM\_STACK\_SIZE\_BYTES}{SYSTEM\_STACK\_SIZE\_BYTES}}
+{\footnotesize\ttfamily \#define SYSTEM\+\_\+\+STACK\+\_\+\+SIZE\+\_\+\+BYTES~1024U}
+
+\Hypertarget{stack__guard_8h_a88a35e63716666d074f01930c1a9a5c1}\label{stack__guard_8h_a88a35e63716666d074f01930c1a9a5c1} 
+\index{stack\_guard.h@{stack\_guard.h}!TCB\_STACK\_BASE\_OFFSET@{TCB\_STACK\_BASE\_OFFSET}}
+\index{TCB\_STACK\_BASE\_OFFSET@{TCB\_STACK\_BASE\_OFFSET}!stack\_guard.h@{stack\_guard.h}}
+\doxysubsubsection{\texorpdfstring{TCB\_STACK\_BASE\_OFFSET}{TCB\_STACK\_BASE\_OFFSET}}
+{\footnotesize\ttfamily \#define TCB\+\_\+\+STACK\+\_\+\+BASE\+\_\+\+OFFSET~16}
+

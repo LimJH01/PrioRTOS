@@ -1,0 +1,76 @@
+\doxysection{kernel/trap.c File Reference}
+\hypertarget{trap_8c}{}\label{trap_8c}\index{kernel/trap.c@{kernel/trap.c}}
+{\ttfamily \#include "{}clint.\+h"{}}\newline
+{\ttfamily \#include "{}uart.\+h"{}}\newline
+{\ttfamily \#include "{}prio\+\_\+rtos.\+h"{}}\newline
+{\ttfamily \#include "{}kernel\+\_\+internal.\+h"{}}\newline
+Include dependency graph for trap.\+c\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{trap_8c__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{trap_8c_a391800f8205c2dd5cc02a52ab868ce4d}{trap\+\_\+entry}} (void)
+\item 
+void \mbox{\hyperlink{trap_8c_a7fd306118b826212968bc1f2d4045f61}{trap\+\_\+init}} (void)
+\item 
+void \mbox{\hyperlink{trap_8c_a854ac00fd47f7ec89466db38dda859fd}{trap\+\_\+handler}} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\Hypertarget{trap_8c_a391800f8205c2dd5cc02a52ab868ce4d}\label{trap_8c_a391800f8205c2dd5cc02a52ab868ce4d} 
+\index{trap.c@{trap.c}!trap\_entry@{trap\_entry}}
+\index{trap\_entry@{trap\_entry}!trap.c@{trap.c}}
+\doxysubsubsection{\texorpdfstring{trap\_entry()}{trap\_entry()}}
+{\footnotesize\ttfamily void trap\+\_\+entry (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=317pt]{trap_8c_a391800f8205c2dd5cc02a52ab868ce4d_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{trap_8c_a854ac00fd47f7ec89466db38dda859fd}\label{trap_8c_a854ac00fd47f7ec89466db38dda859fd} 
+\index{trap.c@{trap.c}!trap\_handler@{trap\_handler}}
+\index{trap\_handler@{trap\_handler}!trap.c@{trap.c}}
+\doxysubsubsection{\texorpdfstring{trap\_handler()}{trap\_handler()}}
+{\footnotesize\ttfamily void trap\+\_\+handler (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{trap_8c_a854ac00fd47f7ec89466db38dda859fd_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{trap_8c_a7fd306118b826212968bc1f2d4045f61}\label{trap_8c_a7fd306118b826212968bc1f2d4045f61} 
+\index{trap.c@{trap.c}!trap\_init@{trap\_init}}
+\index{trap\_init@{trap\_init}!trap.c@{trap.c}}
+\doxysubsubsection{\texorpdfstring{trap\_init()}{trap\_init()}}
+{\footnotesize\ttfamily void trap\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=240pt]{trap_8c_a7fd306118b826212968bc1f2d4045f61_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=214pt]{trap_8c_a7fd306118b826212968bc1f2d4045f61_icgraph}
+\end{center}
+\end{figure}

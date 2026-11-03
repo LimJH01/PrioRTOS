@@ -1,0 +1,126 @@
+\doxysection{kernel\+\_\+internal.\+h}
+\hypertarget{kernel__internal_8h_source}{}\label{kernel__internal_8h_source}\index{kernel/include/kernel\_internal.h@{kernel/include/kernel\_internal.h}}
+\mbox{\hyperlink{kernel__internal_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ KERNEL\_INTERNAL\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ KERNEL\_INTERNAL\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{prio__rtos_8h}{prio\_rtos.h}}"{}}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{stack__guard_8h}{stack\_guard.h}}"{}}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Master\ Spec\ 고정\ 용량.\ 태스크\ 슬롯과\ mutex\ 중첩\ 깊이는\ 런타임에\ 늘어나지\ 않는다.}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ OS\_MAX\_TASKS\ \ \ \ \ \ \ \ \ 32U}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#define\ OS\_MAX\_MUTEX\_NESTING\ 4U}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ IDLE\_TASK\_PRIORITY\ \ \ (OS\_MAX\_TASKS\ -\/\ 1U)\ }\textcolor{comment}{//\ 슬롯\ 31:\ 항상\ 최저\ 우선순위인\ IDLE}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#define\ MAX\_PRIORITY\ \ \ \ \ \ \ \ \ (OS\_MAX\_TASKS\ -\/\ 1U)\ }\textcolor{comment}{//\ 우선순위\ 범위:\ 0(최고)\ \string~\ 31(최저)}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{/*\ 기존\ 내부\ 코드와의\ 호환\ 별칭.\ 새로운\ 자료구조/API는\ OS\_*\ 상수를\ 사용한다.\ */}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ MAX\_TASKS\ OS\_MAX\_TASKS}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{keyword}{\_Static\_assert}(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\_MAX\_TASKS}}\ ==\ 32U,\ \textcolor{stringliteral}{"{}OS\_MAX\_TASKS\ must\ be\ 32"{}});}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00022\ \textcolor{comment}{\ *\ 태스크가\ 트랩에\ 진입할\ 때\ 저장되는\ 전체\ 실행\ 문맥.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{\ *\ context.S의\ trap\_entry가\ 이\ 구조체와\ 동일한\ 128바이트\ 프레임을\ 사용한다.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{\ *\ x2(sp)는\ 프레임\ 밖에서\ TCB\_t::sp로\ 관리하므로\ 여기에는\ 저장하지\ 않는다.}}
+\DoxyCodeLine{00025\ \textcolor{comment}{\ *}}
+\DoxyCodeLine{00026\ \textcolor{comment}{\ *\ -\/\ 원래:\ RISC-\/V\ 표준\ C\ 호출\ 규약(Calling\ Convention)에\ 따라,\ 자발적\ 양보시\ }}
+\DoxyCodeLine{00027\ \textcolor{comment}{\ *\ \ \ \ \ \ \ \ \ Callee-\/saved\ 레지스터만\ 보존하면\ 되었기에\ 총\ 13개(s0\string~s11,\ ra)\ 레지스터로\ 설계되었음.}}
+\DoxyCodeLine{00028\ \textcolor{comment}{\ *\ -\/\ 변경:\ CLINT\ 타이머\ 인터럽트\ 기반\ Preemptive\ Trap과\ IPCP\ 스케줄링\ 환경에서는\ }}
+\DoxyCodeLine{00029\ \textcolor{comment}{\ *\ \ \ \ \ \ \ \ \ 태스크\ 임의\ 지점에서\ 레지스터가\ 오염될\ 수\ 있고,\ mepc/mstatus\ 보존\ 및\ 16바이트\ 스택\ 정렬이\ }}
+\DoxyCodeLine{00030\ \textcolor{comment}{\ *\ \ \ \ \ \ \ \ \ 필수적이기\ 때문에\ 총\ 32개(128바이트,\ 범용\ 30개\ +\ mepc/mstatus)\ 풀\ 컨텍스트\ 프레임으로\ 바꿨음.}}
+\DoxyCodeLine{00031\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00032\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ 범용\ 레지스터\ 30개:\ x1(ra),\ x3\string~x31.\ x0(zero)는\ 항상\ 0이므로\ 저장하지\ 않는다.}}
+\DoxyCodeLine{00034\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_a21c29f0e8d949e804d7c9a10c3b337c2}{ra}};}
+\DoxyCodeLine{00035\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_a98056049abb493a53867937a8e1f2781}{gp}};}
+\DoxyCodeLine{00036\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_a65fa163151bdb392c951476294daa8ee}{tp}};}
+\DoxyCodeLine{00037\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_ac24c6cc293ea618c383df55dd96c6521}{t0}},\ t1,\ t2;}
+\DoxyCodeLine{00038\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_a4fa4784ebf2a671ec7a29c891e9ea053}{s0}},\ s1;}
+\DoxyCodeLine{00039\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_a7b867f9920cdfc30d1c247b447e4ac7a}{a0}},\ a1,\ a2,\ a3,\ a4,\ a5,\ a6,\ a7;}
+\DoxyCodeLine{00040\ \ \ \ \ uint32\_t\ s2,\ s3,\ s4,\ s5,\ s6,\ s7,\ s8,\ s9,\ \mbox{\hyperlink{structTaskContext__t_a7805a01d0b8855b2d68fc7ba2708f4f0}{s10}},\ s11;}
+\DoxyCodeLine{00041\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_aafc00fbdcde3e521a8c8d0b10612cfda}{t3}},\ t4,\ t5,\ t6;}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{comment}{//\ 트랩\ 복귀\ 제어\ 레지스터:\ mret\ 시\ 복귀할\ PC와\ 머신\ 상태.}}
+\DoxyCodeLine{00044\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_a59b307d5623492cb5426333f275de454}{mepc}};\ \ \ \ \textcolor{comment}{//\ 태스크\ 실행\ 복귀\ PC\ 주소}}
+\DoxyCodeLine{00045\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTaskContext__t_aec347eb9555a27fd79a50d51e4088815}{mstatus}};\ \textcolor{comment}{//\ 머신\ 모드\ 인터럽트\ 제어\ 상태\ (MPIE,\ MPP\ 등)}}
+\DoxyCodeLine{00046\ \}\ \mbox{\hyperlink{structTaskContext__t}{TaskContext\_t}};\ \textcolor{comment}{//\ 32개\ *\ 4바이트\ =\ 128바이트}}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{comment}{//=========================================================================//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{/*\ 태스크\ 상태\ 및\ TCB\ */}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00052\ \ \ \ \ \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa14db5fa7bd055b6330ef748f72067e84}{TASK\_STATE\_UNUSED}}\ \ =\ 0,\ \textcolor{comment}{//\ 아직\ 등록되지\ 않은\ 슬롯}}
+\DoxyCodeLine{00053\ \ \ \ \ \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa7599a95a86e9c5e3d5a968a793cbf6a0}{TASK\_STATE\_READY}}\ \ \ =\ 1,\ \textcolor{comment}{//\ 실행\ 가능하며\ ready\ bitmap에\ 포함}}
+\DoxyCodeLine{00054\ \ \ \ \ \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa169adc0116f5c61af55d2dd88709ea4e}{TASK\_STATE\_RUNNING}}\ =\ 2,\ \textcolor{comment}{//\ 현재\ CPU에서\ 실행\ 중인\ 유일한\ 태스크}}
+\DoxyCodeLine{00055\ \ \ \ \ \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346aa698acec7b2725136b8a9ec7f2135effb}{TASK\_STATE\_BLOCKED}}\ =\ 3\ \ \textcolor{comment}{//\ semaphore/mutex\ 등으로\ 대기\ 중}}
+\DoxyCodeLine{00056\ \}\ \mbox{\hyperlink{kernel__internal_8h_af7d1d3bc2c408906b5a25c8cc7a8346a}{TaskState\_t}};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00059\ \textcolor{comment}{\ *\ 태스크\ 슬롯\ 하나의\ 커널\ 관리\ 블록(Task\ Control\ Block).}}
+\DoxyCodeLine{00060\ \textcolor{comment}{\ *\ task\_id\ ==\ base\_priority\ ==\ 슬롯\ 번호라는\ 직접\ 매핑을\ 유지한다.}}
+\DoxyCodeLine{00061\ \textcolor{comment}{\ *\ priority만\ mutex\ ceiling에\ 의해\ 일시적으로\ 변경될\ 수\ 있다.}}
+\DoxyCodeLine{00062\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00063\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structTCB}{TCB}}\ \{}
+\DoxyCodeLine{00064\ \ \ \ \ uint32\_t\ *\mbox{\hyperlink{structTCB_abf11026f03ed21125a062fdbf3fa4d1d}{sp}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 저장된\ trap\ frame의\ 시작\ 주소}}
+\DoxyCodeLine{00065\ \ \ \ \ \mbox{\hyperlink{structmutex}{mutex\_t}}\ *\mbox{\hyperlink{structTCB_a27fa4a29802a9290105f05aa4c837cac}{held\_mutex}};\ \ \ \ \ \ \ \textcolor{comment}{//\ 현재\ 보유한\ mutex의\ 최상단;\ 없으면\ NULL}}
+\DoxyCodeLine{00066\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTCB_adec0707594db1684e1fbba4040f5f5cc}{stack\_size\_bytes}};\ \textcolor{comment}{//\ 태스크\ 스택\ 전체\ 크기(guard\ 포함)}}
+\DoxyCodeLine{00067\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTCB_ae8529efa2a8ac4e24ea56093d607c90f}{reserved}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Master\ Spec\ 예약\ 영역,\ 항상\ 0으로\ 초기화}}
+\DoxyCodeLine{00068\ \ \ \ \ uint8\_t\ *\mbox{\hyperlink{structTCB_addff6694eb64041bc7cd712c09b5663a}{stack\_base}};\ \ \ \ \ \ \ \textcolor{comment}{//\ 16바이트\ canary가\ 시작되는\ 스택\ 하단}}
+\DoxyCodeLine{00069\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structTCB_a658a5617296ad7a4209695d613b518b7}{priority}};\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 현재\ 유효\ priority(숫자가\ 작을수록\ 높음)}}
+\DoxyCodeLine{00070\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structTCB_a734b2cad2d1b3a74052edc7d5f52e552}{base\_priority}};\ \ \ \ \ \textcolor{comment}{//\ 등록\ 당시\ priority,\ 복원\ 기준}}
+\DoxyCodeLine{00071\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structTCB_a56011a0aa5a6a4a37da46823f1909e2d}{task\_id}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 고정\ 슬롯\ ID(0\string~31)}}
+\DoxyCodeLine{00072\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structTCB_a2987855aa531fce1fc7ca31bfc080dc3}{state}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TaskState\_t\ 값}}
+\DoxyCodeLine{00073\ \}\ \mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\_t}};}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00076\ \textcolor{comment}{\ *\ 치명적\ 오류\ 발생\ 시\ 보존하는\ 최소\ 진단\ 정보.}}
+\DoxyCodeLine{00077\ \textcolor{comment}{\ *\ RV32\ 기준\ 6개\ 워드,\ 총\ 24바이트이며\ kernel\_panic()에서\ 기록한다.}}
+\DoxyCodeLine{00078\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00079\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00080\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structCrashDump__t_abe9b19cd94437a1a30e0366cbc159a84}{mcause}};\ \ \ \ \ \ \ \textcolor{comment}{//\ trap\ 원인}}
+\DoxyCodeLine{00081\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structCrashDump__t_a70f876e74419fdd6ee9fe05d3cd8b6bd}{mepc}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 오류가\ 발생한/복귀할\ PC}}
+\DoxyCodeLine{00082\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structCrashDump__t_a0f955a130a83c67977cd27673be3ab06}{mtval}};\ \ \ \ \ \ \ \ \textcolor{comment}{//\ trap\ 관련\ 추가\ 값}}
+\DoxyCodeLine{00083\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structCrashDump__t_ad5cdad16e6e449287ef2bf118e0b481a}{sp}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 오류\ 시점의\ 스택\ 포인터}}
+\DoxyCodeLine{00084\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structCrashDump__t_a7c72b351e48fea25965a9a3fbf523ddb}{task\_id}};\ \ \ \ \ \ \textcolor{comment}{//\ 오류를\ 일으킨\ 태스크\ ID}}
+\DoxyCodeLine{00085\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structCrashDump__t_a70252d3d45eb54e123353554ba40d907}{reserved\_pad}};\ \textcolor{comment}{//\ 향후\ 확장을\ 위한\ 예약\ 영역}}
+\DoxyCodeLine{00086\ \}\ \mbox{\hyperlink{structCrashDump__t}{CrashDump\_t}};}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\_t}})\ ==\ 8U,\ \textcolor{stringliteral}{"{}mutex\_t\ size\ mismatch"{}});}
+\DoxyCodeLine{00089\ \textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{kernel__internal_8h_ae9916d7ededf65cec89b92fa4fb9ed58}{TCB\_t}})\ ==\ 24U,\ \textcolor{stringliteral}{"{}TCB\_t\ size\ mismatch"{}});}
+\DoxyCodeLine{00090\ \textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structSemaphore__t}{Semaphore\_t}})\ ==\ 8U,\ \textcolor{stringliteral}{"{}Semaphore\_t\ size\ mismatch"{}});}
+\DoxyCodeLine{00091\ \textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structCrashDump__t}{CrashDump\_t}})\ ==\ 24U,\ \textcolor{stringliteral}{"{}CrashDump\_t\ size\ mismatch"{}});}
+\DoxyCodeLine{00092\ \textcolor{keyword}{\_Static\_assert}(offsetof(\mbox{\hyperlink{structTCB}{TCB\_t}},\ stack\_base)\ ==\ \mbox{\hyperlink{stack__guard_8h_a88a35e63716666d074f01930c1a9a5c1}{TCB\_STACK\_BASE\_OFFSET}},}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}TCB\ stack\_base\ offset\ must\ match\ context.S"{}});}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \textcolor{comment}{//=========================================================================//}}
+\DoxyCodeLine{00096\ \textcolor{comment}{/*\ 커널\ 전역\ 상태\ 장부*/}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structTCB}{TCB\_t}}\ \mbox{\hyperlink{kernel__internal_8h_a1dfd58bd16414a969f5bcabd4d61126b}{g\_tcbs}}[\mbox{\hyperlink{kernel__internal_8h_aac747bed84189f8cfa509b94d488e622}{MAX\_TASKS}}];\ \textcolor{comment}{//\ 태스크\ 장부}}
+\DoxyCodeLine{00099\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structTCB}{TCB\_t}}\ *\mbox{\hyperlink{kernel__internal_8h_a7d8bb6dc60bfac4cb1bec2610f86801f}{g\_current\_tcb}};\ \textcolor{comment}{//\ 현재\ 태스크\ 주소}}
+\DoxyCodeLine{00100\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{kernel__internal_8h_a3257021f81dcc4315638ca17bcecf837}{g\_ready\_bitmap}};\ \textcolor{comment}{//\ 비트\ 0-\/31:\ 태스크\ 슬롯\ 준비\ 여부\ 플래그}}
+\DoxyCodeLine{00101\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structCrashDump__t}{CrashDump\_t}}\ \mbox{\hyperlink{kernel__internal_8h_a5d9345a4f5f9985b65bf5c8292764afc}{g\_crash\_dump}};}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{comment}{//=========================================================================//}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//=========================================================================//}}
+\DoxyCodeLine{00105\ \textcolor{comment}{/*\ 어셈블리\ 및\ 커널\ 내부\ 엔진\ 함수*/}}
+\DoxyCodeLine{00106\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel__internal_8h_a170912052249b913e2f1e5a29c8d33bf}{prio\_context\_first\_switch}}(\mbox{\hyperlink{structTCB}{TCB\_t}}\ *next);}
+\DoxyCodeLine{00107\ \mbox{\hyperlink{kernel__internal_8h_aa048bff185535d34fec584d4c7a5bcd7}{\_\_attribute\_\_}}((noreturn))\ \textcolor{keywordtype}{void}\ stack\_overflow\_panic(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \textcolor{comment}{//sched.c\ 내부\ 함수}}
+\DoxyCodeLine{00110\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel__internal_8h_a84cbe33479159518535a54988e337531}{sched\_schedule}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00111\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel__internal_8h_a02644dfb0aefa8688e9514e8100b0e52}{sched\_request\_reschedule}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00112\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel__internal_8h_aa420ffc27b9caa622f4ac828dab96fa2}{mutex\_watchdog\_tick}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00113\ uint32\_t\ \mbox{\hyperlink{kernel__internal_8h_a5074d8e7087569a25d6d98e2b065221a}{sched\_irq\_save}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00114\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel__internal_8h_a441fd33c20a4c8362b8c6513403550cf}{sched\_irq\_restore}}(uint32\_t\ saved\_mstatus);}
+\DoxyCodeLine{00115\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e}{sched\_block\_current}}(uint32\_t\ saved\_mstatus);}
+\DoxyCodeLine{00116\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{kernel__internal_8h_a9fa10be76636c462e93e8db4af9f51f3}{sched\_wake\_task}}(uint32\_t\ slot);}
+\DoxyCodeLine{00117\ \mbox{\hyperlink{structTCB}{TCB\_t}}\ *\mbox{\hyperlink{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8}{sched\_select\_next\_task}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00118\ uint32\_t\ \mbox{\hyperlink{kernel__internal_8h_a11cf9058a5cfba599bd54576cac750da}{sched\_highest\_priority\_slot}}(uint32\_t\ task\_bitmap);}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

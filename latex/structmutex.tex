@@ -1,0 +1,67 @@
+\doxysection{mutex Struct Reference}
+\hypertarget{structmutex}{}\label{structmutex}\index{mutex@{mutex}}
+
+
+{\ttfamily \#include $<$prio\+\_\+rtos.\+h$>$}
+
+
+
+Collaboration diagram for mutex\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=208pt]{structmutex__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structmutex_a6b0db5cfe8603fff4871f20fa0f69701}{ceiling\+\_\+prio}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structmutex_a2e128127ec9ebe2f5bca541a28342e6f}{saved\+\_\+prio}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structmutex_a959932b067d4184049bc3fc4e73583de}{locked}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structmutex_af21842e7b964d046a9d145f3f600e187}{padding}}
+\item 
+struct \mbox{\hyperlink{structmutex}{mutex}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structmutex_a9891abbdc78c715dae2d2e302eb03cd3}{prev\+\_\+mutex}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structmutex_a6b0db5cfe8603fff4871f20fa0f69701}\label{structmutex_a6b0db5cfe8603fff4871f20fa0f69701} 
+\index{mutex@{mutex}!ceiling\_prio@{ceiling\_prio}}
+\index{ceiling\_prio@{ceiling\_prio}!mutex@{mutex}}
+\doxysubsubsection{\texorpdfstring{ceiling\_prio}{ceiling\_prio}}
+{\footnotesize\ttfamily uint8\+\_\+t mutex\+::ceiling\+\_\+prio}
+
+\Hypertarget{structmutex_a959932b067d4184049bc3fc4e73583de}\label{structmutex_a959932b067d4184049bc3fc4e73583de} 
+\index{mutex@{mutex}!locked@{locked}}
+\index{locked@{locked}!mutex@{mutex}}
+\doxysubsubsection{\texorpdfstring{locked}{locked}}
+{\footnotesize\ttfamily uint8\+\_\+t mutex\+::locked}
+
+\Hypertarget{structmutex_af21842e7b964d046a9d145f3f600e187}\label{structmutex_af21842e7b964d046a9d145f3f600e187} 
+\index{mutex@{mutex}!padding@{padding}}
+\index{padding@{padding}!mutex@{mutex}}
+\doxysubsubsection{\texorpdfstring{padding}{padding}}
+{\footnotesize\ttfamily uint8\+\_\+t mutex\+::padding}
+
+\Hypertarget{structmutex_a9891abbdc78c715dae2d2e302eb03cd3}\label{structmutex_a9891abbdc78c715dae2d2e302eb03cd3} 
+\index{mutex@{mutex}!prev\_mutex@{prev\_mutex}}
+\index{prev\_mutex@{prev\_mutex}!mutex@{mutex}}
+\doxysubsubsection{\texorpdfstring{prev\_mutex}{prev\_mutex}}
+{\footnotesize\ttfamily struct \mbox{\hyperlink{structmutex}{mutex}}\texorpdfstring{$\ast$}{*} mutex\+::prev\+\_\+mutex}
+
+\Hypertarget{structmutex_a2e128127ec9ebe2f5bca541a28342e6f}\label{structmutex_a2e128127ec9ebe2f5bca541a28342e6f} 
+\index{mutex@{mutex}!saved\_prio@{saved\_prio}}
+\index{saved\_prio@{saved\_prio}!mutex@{mutex}}
+\doxysubsubsection{\texorpdfstring{saved\_prio}{saved\_prio}}
+{\footnotesize\ttfamily uint8\+\_\+t mutex\+::saved\+\_\+prio}
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+kernel/include/\mbox{\hyperlink{prio__rtos_8h}{prio\+\_\+rtos.\+h}}\end{DoxyCompactItemize}

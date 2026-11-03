@@ -1,0 +1,160 @@
+\chapter{함수별 Final Master Baseline v2.2.4 적합성 대조표}
+\hypertarget{md_docs_2function-conformance-v2_81}{}\label{md_docs_2function-conformance-v2_81}\index{함수별 Final Master Baseline v2.2.4 적합성 대조표@{함수별 Final Master Baseline v2.2.4 적합성 대조표}}
+\label{md_docs_2function-conformance-v2_81_autotoc_md3}%
+\Hypertarget{md_docs_2function-conformance-v2_81_autotoc_md3}%
+ \begin{quote}
+이 문서는 \doxysectlink{md_docs_2implementation-contract-v2_82_84}{구현 계약 및 적합성 추적 기준선 v2.2.4}{0}의 현재 소스 판정표다. Master 문서에서 제거된 기존 Part 5의 함수별 구현 정보는 이 문서에서만 관리한다. 표에 남아 있는 {\ttfamily §5.\+x} 표기는 과거 함수 계약에 대한 추적용 역사 참조이며, 현재 기준은 Master의 {\ttfamily REQ-\/\texorpdfstring{$\ast$}{*}}/{\ttfamily INV-\/\texorpdfstring{$\ast$}{*}}와 구현 계약 문서다. \end{quote}
+이 문서는 현재 구현의 모든 함수 및 어셈블리 진입점을 \doxysectlink{md_docs_2master-spec-v2_82_84}{Final Master Baseline v2.2.4}{0}와 대조한다. 명세 위치는 해당 문서의 절 번호 및 REQ/\+INV ID로 표시한다.\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md4}{}\doxysection{\texorpdfstring{판정 기준}{판정 기준}}\label{md_docs_2function-conformance-v2_81_autotoc_md4}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{2}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 의미    }\\\cline{1-2}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 의미    }\\\cline{1-2}
+\endhead
+✅ 충족   &코드에서 명세에 정의된 동작을 확인함    \\\cline{1-2}
+◐ 부분   &일부 동작은 있으나 명세의 일부 조건·규칙과 다르거나 검증되지 않음    \\\cline{1-2}
+❌ 미충족   &구현 동작이 명세와 다르거나 필수 동작이 구현되지 않음    \\\cline{1-2}
+❌ 미충족   &명세가 요구하는 함수 또는 동작이 없거나 현재 구현과 다름   \\\cline{1-2}
+\end{longtabu}
+
+
+판정은 소스 정적 검토 결과다. QEMU 또는 실제 하드웨어에서의 동작, 사이클 수, WCET, 스택 사용량 및 테스트 통과 여부를 뜻하지 않는다.\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md5}{}\doxysection{\texorpdfstring{부팅 및 애플리케이션}{부팅 및 애플리케이션}}\label{md_docs_2function-conformance-v2_81_autotoc_md5}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endhead
+\href{../boot/startup.S}{\texttt{ {\ttfamily \+\_\+start}}}   &✅ 충족   &§3.3 Step 1, §5.1   &부트 스택 설정, {\ttfamily .bss} 초기화 후 {\ttfamily \doxylink{main_8c_a840291bc02cba5474a4cb46a9b9566fe}{main()}}을 호출한다.    \\\cline{1-4}
+\href{../app/main.c}{\texttt{ {\ttfamily main}}}   &◐ 부분   &§3.3 Step 2–3, §5.11   &초기화 순서는 명세와 맞고 {\ttfamily TIMER\+\_\+\+INTERVAL} 값도 10MHz·1ms 기준 10,000 count로 정렬되어 있다. timer tick과 Mutex 예산 감시 경로가 연결되어 있다.    \\\cline{1-4}
+{\ttfamily uart\+\_\+puts\+\_\+checked} (\href{../app/main.c}{\texttt{ {\ttfamily main.\+c}}})   &◐ 부분   &§5.10, §3.3   &UART 오류를 {\ttfamily kernel\+\_\+panic}으로 전파하는 보조 함수다. 명세에 별도 함수로 정의되어 있지 않으며 부트 출력은 명세의 핵심 초기화 단계에 추가된 동작이다.    \\\cline{1-4}
+\href{../app/tasks.c}{\texttt{ {\ttfamily tasks\+\_\+init}}}   &◐ 부분   &§5.12, §6.4   &정적 스택·세마포어·정적 {\ttfamily mutex\+\_\+t}·실행시간 예산·응용 태스크를 초기화한다. 예산값 100ms는 데모값이며 실제 WCET 측정값으로 교체해야 한다.    \\\cline{1-4}
+\href{../app/tasks.c}{\texttt{ {\ttfamily task\+\_\+a}}}   &◐ 부분   &§3.4 REQ-\/\+SYN-\/004–005, §5.12   &semaphore/mutex 순서는 적용되어 semaphore 대기는 mutex 보유 중 일어나지 않는다. 그러나 mutex 보유 중 UART 출력과 지연 루프를 수행하며 실행시간 상한이나 계측은 없다. 실험용 임시 태스크다.    \\\cline{1-4}
+\href{../app/tasks.c}{\texttt{ {\ttfamily task\+\_\+b}}}   &◐ 부분   &§3.4 REQ-\/\+SYN-\/004–005, §5.12   &{\ttfamily task\+\_\+a}와 동일하게 mutex 보유 중 UART 출력과 지연 루프를 수행하며 실행시간 상한은 입증되지 않았다. 실험용 임시 태스크다.    \\\cline{1-4}
+\href{../app/tasks.c}{\texttt{ {\ttfamily mock\+\_\+delay}}}   &◐ 부분   &§2 INV-\/\+TIM-\/004, §5.12   &유한 횟수의 카운트다운 루프지만 실제 실행시간 상한은 제시되거나 검증되지 않았다. 터미널 확인용 임시 함수이며 삭제 예정으로 기록되어 있다.   \\\cline{1-4}
+\end{longtabu}
+\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md6}{}\doxysection{\texorpdfstring{BSP 및 하드웨어 드라이버}{BSP 및 하드웨어 드라이버}}\label{md_docs_2function-conformance-v2_81_autotoc_md6}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endhead
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+software\+\_\+interrupt\+\_\+init}}}   &✅ 충족   &§3.3 Step 3, §5.9   &MSIP를 초기화하고 {\ttfamily mie.\+MSIE}를 설정한다. {\ttfamily mstatus.\+MIE}는 전역 인터럽트 허용 비트이므로 이 함수의 개별 인터럽트 활성화와 구분된다.    \\\cline{1-4}
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+send\+\_\+software\+\_\+interrupt}}}   &✅ 충족   &§3.1 Cause 3, §5.9, §2 INV-\/\+CRI-\/011   &배리어 후 MSIP를 설정하여 Cause 3 소프트웨어 인터럽트를 요청한다.    \\\cline{1-4}
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+clear\+\_\+software\+\_\+interrupt}}}   &✅ 충족   &§3.3 트랩 처리, §5.9   &MSIP를 0으로 기록해 pending 상태를 해제한다.    \\\cline{1-4}
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+get\+\_\+mtime}}}   &◐ 부분   &§3.6 REQ-\/\+TMR-\/001, §2 INV-\/\+ATM-\/010, INV-\/\+ERR-\/008, §5.9   &High-\/\+Low-\/\+High 읽기를 최대 {\ttfamily CLINT\+\_\+\+MTIME\+\_\+\+READ\+\_\+\+ATTEMPTS}회 시도하고 실패하면 {\ttfamily kernel\+\_\+panic()}으로 정지한다. 반복 상한은 있으나 MMIO 접근의 WCET는 타깃 버스 응답시간에 따라 별도 입증해야 한다. 인터럽트 지연은 함수 자체의 알고리즘 실행시간과 분리하여 계측해야 한다.    \\\cline{1-4}
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+set\+\_\+mtimecmp}}}   &✅ 충족   &§2 INV-\/\+ATM-\/010, §5.9, §6.8   &RV32에서 LOW를 최댓값으로 임시 설정한 후 HIGH, LOW를 기록한다.    \\\cline{1-4}
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+timer\+\_\+init}}}   &◐ 부분   &§1.1, §3.3 Step 3, §5.9, §6.8   &10MHz·1ms 기준 {\ttfamily TIMER\+\_\+\+INTERVAL=10000ULL}은 정렬되어 있다. timer overrun 정책은 남아 있지만 {\ttfamily \doxylink{prio__rtos_8h_a2fe06f980a41193f64849956928c55ca}{timer\+\_\+tick\+\_\+step()}} 연결은 구현되어 있다.    \\\cline{1-4}
+\href{../bsp/clint.c}{\texttt{ {\ttfamily clint\+\_\+set\+\_\+next\+\_\+timer}}}   &◐ 부분   &§1.1, §3.1 타이머 ISR, §5.9, §6.8   &10MHz·1ms 간격은 정렬되어 있다. 현재 타이머 ISR은 다음 알람을 예약하고 {\ttfamily \doxylink{prio__rtos_8h_a2fe06f980a41193f64849956928c55ca}{timer\+\_\+tick\+\_\+step()}}을 호출한다. 누적 {\ttfamily mtimecmp} 및 overrun 재동기화 정책은 아직 구현되지 않았다.    \\\cline{1-4}
+\href{../bsp/uart.c}{\texttt{ {\ttfamily uart\+\_\+init}}}   &✅ 충족   &§1.1 UART0, §5.10, §6.8   &16550 UART의 divisor, 8-\/N-\/1, FIFO 설정을 수행한다.    \\\cline{1-4}
+\href{../bsp/uart.c}{\texttt{ {\ttfamily uart\+\_\+putc}}}   &✅ 충족   &§2 INV-\/\+ERR-\/008, §5.10   &TX 준비 비트를 {\ttfamily UART\+\_\+\+TX\+\_\+\+POLL\+\_\+\+LIMIT}회까지만 확인하고 상한 초과 시 오류를 반환한다.    \\\cline{1-4}
+\href{../bsp/uart.c}{\texttt{ {\ttfamily uart\+\_\+puts}}}   &✅ 충족   &§2 INV-\/\+ERR-\/008, §5.10   &{\ttfamily \doxylink{uart_8c_a999faf3ffc8b55cc4c8d07d700b34200}{uart\+\_\+putc()}}를 사용해 송신하며 CRLF 변환을 포함한 출력량을 {\ttfamily UART\+\_\+\+PUTS\+\_\+\+MAX\+\_\+\+BYTES}(128)바이트로 제한한다. NULL, 문자열 초과, 문자 전송 타임아웃을 구분한다.   \\\cline{1-4}
+\end{longtabu}
+\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md7}{}\doxysection{\texorpdfstring{트랩, 패닉 및 스케줄러}{트랩, 패닉 및 스케줄러}}\label{md_docs_2function-conformance-v2_81_autotoc_md7}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endhead
+\href{../kernel/trap.c}{\texttt{ {\ttfamily trap\+\_\+init}}}   &✅ 충족   &§1.1 인터럽트 벡터, §3.3 Step 2, §5.3   &{\ttfamily trap\+\_\+entry} 주소를 {\ttfamily mtvec}에 기록해 Direct Mode를 설정한다.    \\\cline{1-4}
+\href{../kernel/trap.c}{\texttt{ {\ttfamily trap\+\_\+handler}}}   &◐ 부분   &§3.1 Top-\/\+Half/\+Bottom-\/\+Half, §3.3 트랩 처리, §5.3   &Cause 3에서는 MSIP를 지우고 스케줄러를 호출한다. Cause 7에서는 다음 타이머를 예약하고 {\ttfamily \doxylink{prio__rtos_8h_a2fe06f980a41193f64849956928c55ca}{timer\+\_\+tick\+\_\+step()}}으로 tick과 Mutex 예산 감시를 수행한다. sleep 처리와 overrun 재동기화는 남아 있다.    \\\cline{1-4}
+\href{../kernel/panic.c}{\texttt{ {\ttfamily kernel\+\_\+panic}}}   &◐ 부분   &§3.3 패닉, §5.7, §2 INV-\/\+ERR-\/008   &MIE 차단·\+UART 메시지·{\ttfamily wfi} 정지는 구현한다. UART 출력 함수의 bounded polling은 적용되지만 반환 오류를 검사하지 않는 best-\/effort 출력이다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+highest\+\_\+priority\+\_\+slot}}}   &✅ 충족   &§3.1 REQ-\/\+SCH-\/001, §5.4   &Guard Bit로 빈 bitmap을 slot 31 IDLE로 처리하고, De Bruijn LUT로 최하위 set bit를 O(1)에 선택한다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily task\+\_\+exit\+\_\+trap}}}   &◐ 부분   &§2 INV-\/\+LFC-\/006, §3.4 REQ-\/\+TSK-\/001, §5.2·§5.4   &현재 함수는 {\ttfamily kernel\+\_\+panic("{}task returned"{})}를 호출하므로 반환 태스크를 정지시키는 동작은 충족한다. 다만 명세가 요구하는 별도 {\ttfamily task\+\_\+return\+\_\+guard} 심볼이 아니라 C static 함수로 구현되어 있다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily stack\+\_\+overflow\+\_\+panic}}}   &✅ 충족   &§2 INV-\/\+STK-\/007, §5.4   &스택 오류를 {\ttfamily kernel\+\_\+panic("{}task stack overflow"{})}로 전달한다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily task\+\_\+create}}}   &◐ 부분   &§3.4 REQ-\/\+TSK-\/001, §5.4, §6.2   &슬롯과 priority를 {\ttfamily slot = prio}로 직접 매핑하고 카나리·128B 초기 문맥을 구성한다. 중복 등록 시 {\ttfamily kernel\+\_\+panic("{}duplicate priority"{})}는 구현하지만, 명세의 \doxylink{structTCB}{TCB} layout({\ttfamily held\+\_\+mutex}, {\ttfamily task\+\_\+id}, 1바이트 priority/state)과 현재 \doxylink{structTCB}{TCB} layout이 다르다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily idle\+\_\+task}}}   &✅ 충족   &§3.4 REQ-\/\+TSK-\/004, §5.4   &우선순위 31 슬롯에서 무한 {\ttfamily wfi} 대기로 동작한다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily priortos\+\_\+start}}}   &◐ 부분   &§3.4 REQ-\/\+TSK-\/005, §5.4   &Idle 등록, LSB De Bruijn 선택, 최초 태스크의 ready bit 제거, RUNNING 전환 및 최초 문맥 복원은 구현한다. 다만 명세의 Guard Bit 합성 방식과 {\ttfamily ipcp\+\_\+scheduler\+\_\+started()} 호출은 없다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+schedule}}}   &✅ 충족   &§3.1 REQ-\/\+SCH-\/001, §5.4, §6.4   &{\ttfamily \doxylink{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8}{sched\+\_\+select\+\_\+next\+\_\+task()}}를 통해 후보를 선택하고, 선점 시 현재 태스크의 READY bit를 복구한다. 동률에서는 현재 태스크를 유지하며 Mutex 보유 중에는 문맥 교환을 막는다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+irq\+\_\+save}}}   &◐ 부분   &§3.5 REQ-\/\+CRI-\/001–002, §5.8, §2 INV-\/\+CRI-\/011   &MIE를 저장하고 끄지만 명세의 중첩 카운터 기반 {\ttfamily \doxylink{critical_8c_a8dcbc84d8ecee85815dc5320c852d1cd}{enter\+\_\+critical()}} API와 배리어 규약을 구현하지 않는다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+irq\+\_\+restore}}}   &◐ 부분   &§3.5 REQ-\/\+CRI-\/002, §5.8, §2 INV-\/\+CRI-\/011   &저장된 MIE 복원은 가능하나 nesting count, underflow 검사 및 마지막 탈출 시 {\ttfamily fence rw, rw} 규약이 없다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+request\+\_\+reschedule}}}   &✅ 충족   &§3.1 Cause 3, §5.4   &CLINT MSIP 기반으로 지연된 문맥 교환을 요청한다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+block\+\_\+current}}}   &✅ 충족   &§3.4 REQ-\/\+SYN-\/004, §5.4   &현재 태스크를 BLOCKED로 만들고 슬롯 READY bit를 제거한다. Mutex 보유 태스크와 IDLE 태스크의 blocking은 즉시 패닉 처리한다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily sched\+\_\+wake\+\_\+task}}}   &◐ 부분   &§3.1, §3.4 REQ-\/\+SYN-\/005, §5.4   &슬롯을 직접 기준으로 BLOCKED 태스크를 READY로 복귀시키고 ready bit를 세운다. 다만 명세의 LSB O(1) 선택 및 sleep expiration 경로와 통합되지 않는다.    \\\cline{1-4}
+\href{../kernel/sched.c}{\texttt{ {\ttfamily task\+\_\+yield}}}   &◐ 부분   &§3.4 REQ-\/\+TSK-\/002, §5.4   &일반 태스크의 yield는 MSIP를 요청하고, IDLE 또는 Mutex 보유 태스크의 yield는 즉시 패닉 처리한다.   \\\cline{1-4}
+\end{longtabu}
+\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md8}{}\doxysection{\texorpdfstring{IPCP 및 세마포어}{IPCP 및 세마포어}}\label{md_docs_2function-conformance-v2_81_autotoc_md8}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endhead
+\href{../kernel/mutex.c}{\texttt{ {\ttfamily current\+\_\+task}}}   &✅ 충족   &§5.5   &현재 RUNNING TCB를 직접 확인하며, Mutex 소유자를 별도 owner 슬롯에 복제하지 않는다.    \\\cline{1-4}
+\href{../kernel/mutex.c}{\texttt{ {\ttfamily mutex\+\_\+init}}}   &✅ 충족   &§3.5 REQ-\/\+SYN-\/001, §5.5   &정적으로 선언된 {\ttfamily mutex\+\_\+t}의 ceiling과 상태 필드를 초기화하고 유효하지 않은 ceiling을 거부한다. 실행시간 예산은 별도 {\ttfamily \doxylink{prio__rtos_8h_a64b995b7f37d8adc273f59717af7e60e}{mutex\+\_\+set\+\_\+execution\+\_\+budget()}}으로 설정한다.    \\\cline{1-4}
+\href{../kernel/mutex.c}{\texttt{ {\ttfamily mutex\+\_\+lock}}}   &✅ 충족   &§2 INV-\/\+MUT-\/009, §3.5 REQ-\/\+SYN-\/002, §5.5   &경합 시 대기하지 않고 패닉 처리하며, {\ttfamily saved\+\_\+prio}와 {\ttfamily prev\+\_\+mutex}를 사용해 TCB의 {\ttfamily held\+\_\+mutex} 목록에 LIFO로 연결한다. 최대 중첩 깊이와 ceiling 규칙을 적용한다.    \\\cline{1-4}
+\href{../kernel/mutex.c}{\texttt{ {\ttfamily mutex\+\_\+unlock}}}   &✅ 충족   &§2 INV-\/\+MUT-\/009, §3.5 REQ-\/\+SYN-\/003, §5.5   &{\ttfamily held\+\_\+mutex} 최상단만 해제하도록 LIFO 순서를 강제하고, 저장된 priority를 복원한다. 최외곽 해제 후에만 재스케줄을 요청한다.    \\\cline{1-4}
+\href{../kernel/semaphore.c}{\texttt{ {\ttfamily semaphore\+\_\+init}}}   &✅ 충족   &§3.4 REQ-\/\+SYN-\/004–005, §5.6   &count와 waiter bitmap을 초기화한다.    \\\cline{1-4}
+\href{../kernel/semaphore.c}{\texttt{ {\ttfamily semaphore\+\_\+wait}}}   &✅ 충족   &§2 INV-\/\+SYN-\/012, §3.4 REQ-\/\+SYN-\/004, §5.6   &Mutex 보유 태스크가 {\ttfamily \doxylink{kernel__internal_8h_a4d7dab794c442854eb0b8740d420bb7e}{sched\+\_\+block\+\_\+current()}} 경로에 진입하면 즉시 패닉 처리되므로 Mutex 보유 중 blocking을 허용하지 않는다.    \\\cline{1-4}
+\href{../kernel/semaphore.c}{\texttt{ {\ttfamily semaphore\+\_\+signal}}}   &◐ 부분   &§3.4 REQ-\/\+SYN-\/005, §5.6   &대기자가 없으면 count를 증가시키고, 있으면 대기 태스크를 깨운다. 다만 대기자 선택은 선형 슬롯/priority 검색이며 명세의 LSB De Bruijn O(1) 선택과 다르다.   \\\cline{1-4}
+\end{longtabu}
+\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md9}{}\doxysection{\texorpdfstring{어셈블리 문맥 처리}{어셈블리 문맥 처리}}\label{md_docs_2function-conformance-v2_81_autotoc_md9}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수/진입점   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수/진입점   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 현재 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세와 맞지 않는 점 / 판단 근거    }\\\cline{1-4}
+\endhead
+\href{../kernel/context.S}{\texttt{ {\ttfamily prio\+\_\+context\+\_\+first\+\_\+switch}}}   &✅ 충족   &§3.3 Step 5, §5.2, §6.1   &초기 문맥과 CSR을 복원하고 {\ttfamily mret}으로 첫 태스크에 진입한다.    \\\cline{1-4}
+\href{../kernel/context.S}{\texttt{ {\ttfamily trap\+\_\+entry}}}   &◐ 부분   &§3.1 Cause 3/7, §5.2, §6.1   &128-\/byte 문맥 저장·복원과 카나리/headroom 검사는 구현한다. 타이머 ISR의 tick/\+Mutex 예산 감시 연결은 구현되었지만 sleep 및 완전한 Top-\/\+Half/\+Bottom-\/\+Half 흐름은 남아 있다.    \\\cline{1-4}
+{\ttfamily prio\+\_\+context\+\_\+switch}   &❌ 미충족   &§5.2   &명세에 별도 어셈블리 심볼이 기재되어 있으나 현재 {\ttfamily kernel/context.\+S}에는 없다. 현재 공용 {\ttfamily trap\+\_\+entry}가 트랩 문맥을 처리한다.    \\\cline{1-4}
+{\ttfamily task\+\_\+return\+\_\+guard}   &❌ 미충족   &§2 INV-\/\+LFC-\/006, §5.2   &명세의 별도 반환 guard 심볼이 없다. 현재 {\ttfamily \doxylink{prio__rtos_8h_aefad3e5130121500bb004e7ca315e89e}{task\+\_\+create()}}는 static {\ttfamily task\+\_\+exit\+\_\+trap()}을 return address로 사용하며 이 함수는 panic을 호출한다. 동작은 부분적으로 맞지만 명세 심볼/\+API와 다르다.   \\\cline{1-4}
+\end{longtabu}
+\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md10}{}\doxysection{\texorpdfstring{명세상 필수지만 현재 구현에서 확인되지 않은 함수}{명세상 필수지만 현재 구현에서 확인되지 않은 함수}}\label{md_docs_2function-conformance-v2_81_autotoc_md10}
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 미구현 내용    }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 함수   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 판정   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 명세 위치   }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ 미구현 내용    }\\\cline{1-4}
+\endhead
+{\ttfamily \doxylink{kernel__internal_8h_a11cf9058a5cfba599bd54576cac750da}{sched\+\_\+highest\+\_\+priority\+\_\+slot(uint32\+\_\+t task\+\_\+bitmap)}}   &✅ 충족   &§3.1 REQ-\/\+SCH-\/001, §5.4   &{\ttfamily bitmap \& -\/bitmap} 및 Guard Bit와 De Bruijn LUT로 LSB 최고 priority 슬롯을 O(1)에 추출한다.    \\\cline{1-4}
+{\ttfamily \doxylink{kernel__internal_8h_af9d0db2e84f3f199f9f57fd8bc94dca8}{sched\+\_\+select\+\_\+next\+\_\+task(void)}}   &✅ 충족   &§3.1 REQ-\/\+SCH-\/001, §5.4   &최고 슬롯을 직접 \doxylink{structTCB}{TCB} 포인터로 변환하고 ready bitmap에서 제거한다.    \\\cline{1-4}
+{\ttfamily task\+\_\+sleep\+\_\+ticks(uint32\+\_\+t ticks)}   &❌ 미충족   &§3.4 REQ-\/\+TSK-\/003, §5.4, §5.13   &mutex 점유 검사, sleep remaining ticks 기록, sleep bitmap 등록 및 MSIP 디스패치가 없다.    \\\cline{1-4}
+{\ttfamily \doxylink{prio__rtos_8h_a2fe06f980a41193f64849956928c55ca}{timer\+\_\+tick\+\_\+step(void)}}   &◐ 부분   &§3.1 타이머 ISR, §3.6 REQ-\/\+TMR-\/002, §5.4, §5.13   &1ms 논리 tick을 증가시키고 현재 태스크의 Mutex 실행시간 예산을 검사한다. sleep 카운터, 만료 태스크 복귀 및 별도 선점 판정은 남아 있다.    \\\cline{1-4}
+{\ttfamily \doxylink{prio__rtos_8h_a1d7dc6b88c0b4b34a211dd717ccf0c3c}{get\+\_\+tick\+\_\+count(void)}}   &❌ 미충족   &§3.6 REQ-\/\+TMR-\/001, §5.4, §5.13   &원자적 64비트 시스템 tick 조회 API가 없다.    \\\cline{1-4}
+{\ttfamily \doxylink{critical_8c_a8dcbc84d8ecee85815dc5320c852d1cd}{enter\+\_\+critical(void)}}   &✅ 충족   &§3.5 REQ-\/\+CRI-\/001, §5.8, §5.13   &MIE를 비활성화하고 nesting count, overflow 검사, memory barrier를 적용한다.    \\\cline{1-4}
+{\ttfamily \doxylink{critical_8c_a521c46d2fe4940150406258f634195f1}{exit\+\_\+critical(void)}}   &✅ 충족   &§3.5 REQ-\/\+CRI-\/002, §5.8, §5.13   &underflow를 검사하고 마지막 탈출에서만 저장된 MIE 상태를 barrier 후 복원한다.    \\\cline{1-4}
+{\ttfamily task\+\_\+return\+\_\+guard(void)}   &❌ 미충족   &§2 INV-\/\+LFC-\/006, §5.2   &태스크 반환 시 {\ttfamily kernel\+\_\+panic("{}task returned"{})}를 호출하는 별도 guard가 없다.    \\\cline{1-4}
+{\ttfamily unhandled\+\_\+trap\+\_\+freeze(void)}   &❌ 미충족   &§5.3   &미인가 trap을 별도 심볼로 동결하는 함수가 없다. 현재 {\ttfamily \doxylink{trap_8c_a854ac00fd47f7ec89466db38dda859fd}{trap\+\_\+handler()}}의 {\ttfamily else} 블록에 {\ttfamily wfi} 루프가 직접 들어 있다.    \\\cline{1-4}
+{\ttfamily \doxylink{prio__rtos_8h_a7e920260b8ef52fb82798503b0b683eb}{mutex\+\_\+init(mutex\+\_\+t \texorpdfstring{$\ast$}{*}m, uint8\+\_\+t ceiling\+\_\+prio)}}   &✅ 충족   &§3.5 REQ-\/\+SYN-\/001, §5.5   &정적 mutex의 ceiling, {\ttfamily saved\+\_\+prio}, {\ttfamily locked}, {\ttfamily prev\+\_\+mutex}를 초기화한다.   \\\cline{1-4}
+\end{longtabu}
+\hypertarget{md_docs_2function-conformance-v2_81_autotoc_md11}{}\doxysection{\texorpdfstring{구현 전반에서 명세와 다른 점}{구현 전반에서 명세와 다른 점}}\label{md_docs_2function-conformance-v2_81_autotoc_md11}
+
+\begin{DoxyItemize}
+\item v2.\+2 명세는 우선순위 0이 최고, 31이 최저이며 {\ttfamily Priority == Task Slot == Bit Index} 직접 매핑을 요구한다. 현재 구현은 이 우선순위 방향과 {\ttfamily slot = prio} 매핑을 따르고, 최하위 set bit를 De Bruijn LUT로 선택한다.
+\item v2.\+2.\+1 명세의 {\ttfamily g\+\_\+ready\+\_\+bitmap}은 Running 태스크를 제외한 Ready 태스크 비트맵이어야 한다. 현재 {\ttfamily \doxylink{kernel__internal_8h_a84cbe33479159518535a54988e337531}{sched\+\_\+schedule()}}은 선점되는 현재 태스크를 READY로 바꾸면서 해당 슬롯 bit를 복구한다.
+\item v2.\+2 명세는 {\ttfamily g\+\_\+prio\+\_\+to\+\_\+slot\mbox{[}32\mbox{]}}를 폐기했으므로, 기존 v2.\+1 대조표의 “priority-\/to-\/slot 매핑 미갱신”은 더 이상 핵심 불일치가 아니다. 현재 남은 문제는 IPCP 동적 priority와 직접 매핑 bitmap의 정합성, 그리고 Running 비트 처리다.
+\item v2.\+2 명세는 {\ttfamily kernel/ipcp.\+c}의 동적 mutex 설정·waiter handoff 대신 {\ttfamily \doxylink{mutex_8c}{kernel/mutex.\+c}}의 정적 {\ttfamily mutex\+\_\+t}와 LIFO priority shadowing을 요구한다. 현재 구현은 {\ttfamily \doxylink{structTCB_a27fa4a29802a9290105f05aa4c837cac}{TCB\+\_\+t\+::held\+\_\+mutex}}를 유일한 소유권 장부로 사용하며, {\ttfamily kernel/ipcp.\+c}와 ID 기반 API는 제거되었다.
+\item v2.\+2 명세의 1ms 타이머, {\ttfamily \doxylink{prio__rtos_8h_a2fe06f980a41193f64849956928c55ca}{timer\+\_\+tick\+\_\+step()}}, 64비트 system tick, 중첩 critical-\/section API는 연결되었다. sleep bitmap, timer overrun 재동기화, 대상 보드 WCET 측정은 별도 작업이다.
+\item {\ttfamily TCB\+\_\+t}, {\ttfamily mutex\+\_\+t}, 함수 원형과 핵심 Mutex 경로는 현재 Master Spec의 정적 소유권 모델에 맞춰 동기화되었다. 타이머·sleep·\+QEMU 동작 검증은 별도 작업으로 남아 있다. 
+\end{DoxyItemize}

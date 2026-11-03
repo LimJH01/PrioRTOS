@@ -1,0 +1,150 @@
+\doxysection{kernel/mutex.c File Reference}
+\hypertarget{mutex_8c}{}\label{mutex_8c}\index{kernel/mutex.c@{kernel/mutex.c}}
+{\ttfamily \#include "{}prio\+\_\+rtos.\+h"{}}\newline
+{\ttfamily \#include "{}kernel\+\_\+internal.\+h"{}}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+Include dependency graph for mutex.\+c\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structMutexWatchdogEntry__t}{Mutex\+Watchdog\+Entry\+\_\+t}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{mutex_8c_a243fe087f778db827ee17ae195b77633}{MUTEX\+\_\+\+WATCHDOG\+\_\+\+SLOTS}}~(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{kernel__internal_8h_ac1c1b4b142cffef84f0914bc265f9016}{OS\+\_\+\+MAX\+\_\+\+MUTEX\+\_\+\+NESTING}})
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} \mbox{\hyperlink{mutex_8c_a7e920260b8ef52fb82798503b0b683eb}{mutex\+\_\+init}} (\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{structmutex}{mutex}}, uint8\+\_\+t ceiling\+\_\+prio)
+\item 
+\mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} \mbox{\hyperlink{mutex_8c_a64b995b7f37d8adc273f59717af7e60e}{mutex\+\_\+set\+\_\+execution\+\_\+budget}} (\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{structmutex}{mutex}}, uint32\+\_\+t budget\+\_\+ticks)
+\item 
+\mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} \mbox{\hyperlink{mutex_8c_ab8962993baacb9669639c122ce4152f9}{mutex\+\_\+lock}} (\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{structmutex}{mutex}})
+\item 
+\mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} \mbox{\hyperlink{mutex_8c_aca4452a23a7c1e5e4399c55bc57c682b}{mutex\+\_\+unlock}} (\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{structmutex}{mutex}})
+\item 
+void \mbox{\hyperlink{mutex_8c_aa420ffc27b9caa622f4ac828dab96fa2}{mutex\+\_\+watchdog\+\_\+tick}} (void)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{mutex_8c_a243fe087f778db827ee17ae195b77633}\label{mutex_8c_a243fe087f778db827ee17ae195b77633} 
+\index{mutex.c@{mutex.c}!MUTEX\_WATCHDOG\_SLOTS@{MUTEX\_WATCHDOG\_SLOTS}}
+\index{MUTEX\_WATCHDOG\_SLOTS@{MUTEX\_WATCHDOG\_SLOTS}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{MUTEX\_WATCHDOG\_SLOTS}{MUTEX\_WATCHDOG\_SLOTS}}
+{\footnotesize\ttfamily \#define MUTEX\+\_\+\+WATCHDOG\+\_\+\+SLOTS~(\mbox{\hyperlink{kernel__internal_8h_a16f4a5504fe99e05cc20203b7f6b87dc}{OS\+\_\+\+MAX\+\_\+\+TASKS}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{kernel__internal_8h_ac1c1b4b142cffef84f0914bc265f9016}{OS\+\_\+\+MAX\+\_\+\+MUTEX\+\_\+\+NESTING}})}
+
+
+
+\doxysubsection{Function Documentation}
+\Hypertarget{mutex_8c_a7e920260b8ef52fb82798503b0b683eb}\label{mutex_8c_a7e920260b8ef52fb82798503b0b683eb} 
+\index{mutex.c@{mutex.c}!mutex\_init@{mutex\_init}}
+\index{mutex\_init@{mutex\_init}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{mutex\_init()}{mutex\_init()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} mutex\+\_\+init (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}}]{mutex,  }\item[{uint8\+\_\+t}]{ceiling\+\_\+prio }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=326pt]{mutex_8c_a7e920260b8ef52fb82798503b0b683eb_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{mutex_8c_ab8962993baacb9669639c122ce4152f9}\label{mutex_8c_ab8962993baacb9669639c122ce4152f9} 
+\index{mutex.c@{mutex.c}!mutex\_lock@{mutex\_lock}}
+\index{mutex\_lock@{mutex\_lock}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{mutex\_lock()}{mutex\_lock()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} mutex\+\_\+lock (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}}]{mutex }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_ab8962993baacb9669639c122ce4152f9_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_ab8962993baacb9669639c122ce4152f9_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{mutex_8c_a64b995b7f37d8adc273f59717af7e60e}\label{mutex_8c_a64b995b7f37d8adc273f59717af7e60e} 
+\index{mutex.c@{mutex.c}!mutex\_set\_execution\_budget@{mutex\_set\_execution\_budget}}
+\index{mutex\_set\_execution\_budget@{mutex\_set\_execution\_budget}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{mutex\_set\_execution\_budget()}{mutex\_set\_execution\_budget()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} mutex\+\_\+set\+\_\+execution\+\_\+budget (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}}]{mutex,  }\item[{uint32\+\_\+t}]{budget\+\_\+ticks }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=317pt]{mutex_8c_a64b995b7f37d8adc273f59717af7e60e_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_a64b995b7f37d8adc273f59717af7e60e_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{mutex_8c_aca4452a23a7c1e5e4399c55bc57c682b}\label{mutex_8c_aca4452a23a7c1e5e4399c55bc57c682b} 
+\index{mutex.c@{mutex.c}!mutex\_unlock@{mutex\_unlock}}
+\index{mutex\_unlock@{mutex\_unlock}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{mutex\_unlock()}{mutex\_unlock()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{prio__rtos_8h_a425654133c7202dabda6761925896aae}{Mutex\+Result\+\_\+t}} mutex\+\_\+unlock (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*}}]{mutex }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_aca4452a23a7c1e5e4399c55bc57c682b_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_aca4452a23a7c1e5e4399c55bc57c682b_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{mutex_8c_aa420ffc27b9caa622f4ac828dab96fa2}\label{mutex_8c_aa420ffc27b9caa622f4ac828dab96fa2} 
+\index{mutex.c@{mutex.c}!mutex\_watchdog\_tick@{mutex\_watchdog\_tick}}
+\index{mutex\_watchdog\_tick@{mutex\_watchdog\_tick}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{mutex\_watchdog\_tick()}{mutex\_watchdog\_tick()}}
+{\footnotesize\ttfamily void mutex\+\_\+watchdog\+\_\+tick (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_aa420ffc27b9caa622f4ac828dab96fa2_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mutex_8c_aa420ffc27b9caa622f4ac828dab96fa2_icgraph}
+\end{center}
+\end{figure}

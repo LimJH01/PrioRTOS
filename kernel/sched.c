@@ -147,6 +147,7 @@ void idle_task(void){
 
 void priortos_start(void) {
     // 1. 최하위 우선순위 31번에 IDLE 태스크 등록 (비트맵 31번 비트 영구 세트)
+    // 즉 시스템 최후의 방어선 31번 IDLE 태스크를 만드는것 (user가 만드는것이 아님)
     TaskCreateResult_t result = 
         task_create(IDLE_TASK_PRIORITY, idle_task, idle_stack, sizeof(idle_stack));
 

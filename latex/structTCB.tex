@@ -1,0 +1,99 @@
+\doxysection{TCB Struct Reference}
+\hypertarget{structTCB}{}\label{structTCB}\index{TCB@{TCB}}
+
+
+{\ttfamily \#include $<$kernel\+\_\+internal.\+h$>$}
+
+
+
+Collaboration diagram for TCB\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=208pt]{structTCB__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structTCB_abf11026f03ed21125a062fdbf3fa4d1d}{sp}}
+\item 
+\mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structTCB_a27fa4a29802a9290105f05aa4c837cac}{held\+\_\+mutex}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structTCB_adec0707594db1684e1fbba4040f5f5cc}{stack\+\_\+size\+\_\+bytes}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structTCB_ae8529efa2a8ac4e24ea56093d607c90f}{reserved}}
+\item 
+uint8\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structTCB_addff6694eb64041bc7cd712c09b5663a}{stack\+\_\+base}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structTCB_a658a5617296ad7a4209695d613b518b7}{priority}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structTCB_a734b2cad2d1b3a74052edc7d5f52e552}{base\+\_\+priority}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structTCB_a56011a0aa5a6a4a37da46823f1909e2d}{task\+\_\+id}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{structTCB_a2987855aa531fce1fc7ca31bfc080dc3}{state}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structTCB_a734b2cad2d1b3a74052edc7d5f52e552}\label{structTCB_a734b2cad2d1b3a74052edc7d5f52e552} 
+\index{TCB@{TCB}!base\_priority@{base\_priority}}
+\index{base\_priority@{base\_priority}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{base\_priority}{base\_priority}}
+{\footnotesize\ttfamily uint8\+\_\+t TCB\+::base\+\_\+priority}
+
+\Hypertarget{structTCB_a27fa4a29802a9290105f05aa4c837cac}\label{structTCB_a27fa4a29802a9290105f05aa4c837cac} 
+\index{TCB@{TCB}!held\_mutex@{held\_mutex}}
+\index{held\_mutex@{held\_mutex}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{held\_mutex}{held\_mutex}}
+{\footnotesize\ttfamily \mbox{\hyperlink{prio__rtos_8h_ac32ff6793a910bc7b48c8b0bb3c47ea7}{mutex\+\_\+t}}\texorpdfstring{$\ast$}{*} TCB\+::held\+\_\+mutex}
+
+\Hypertarget{structTCB_a658a5617296ad7a4209695d613b518b7}\label{structTCB_a658a5617296ad7a4209695d613b518b7} 
+\index{TCB@{TCB}!priority@{priority}}
+\index{priority@{priority}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{priority}{priority}}
+{\footnotesize\ttfamily uint8\+\_\+t TCB\+::priority}
+
+\Hypertarget{structTCB_ae8529efa2a8ac4e24ea56093d607c90f}\label{structTCB_ae8529efa2a8ac4e24ea56093d607c90f} 
+\index{TCB@{TCB}!reserved@{reserved}}
+\index{reserved@{reserved}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{reserved}{reserved}}
+{\footnotesize\ttfamily uint32\+\_\+t TCB\+::reserved}
+
+\Hypertarget{structTCB_abf11026f03ed21125a062fdbf3fa4d1d}\label{structTCB_abf11026f03ed21125a062fdbf3fa4d1d} 
+\index{TCB@{TCB}!sp@{sp}}
+\index{sp@{sp}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{sp}{sp}}
+{\footnotesize\ttfamily uint32\+\_\+t\texorpdfstring{$\ast$}{*} TCB\+::sp}
+
+\Hypertarget{structTCB_addff6694eb64041bc7cd712c09b5663a}\label{structTCB_addff6694eb64041bc7cd712c09b5663a} 
+\index{TCB@{TCB}!stack\_base@{stack\_base}}
+\index{stack\_base@{stack\_base}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{stack\_base}{stack\_base}}
+{\footnotesize\ttfamily uint8\+\_\+t\texorpdfstring{$\ast$}{*} TCB\+::stack\+\_\+base}
+
+\Hypertarget{structTCB_adec0707594db1684e1fbba4040f5f5cc}\label{structTCB_adec0707594db1684e1fbba4040f5f5cc} 
+\index{TCB@{TCB}!stack\_size\_bytes@{stack\_size\_bytes}}
+\index{stack\_size\_bytes@{stack\_size\_bytes}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{stack\_size\_bytes}{stack\_size\_bytes}}
+{\footnotesize\ttfamily uint32\+\_\+t TCB\+::stack\+\_\+size\+\_\+bytes}
+
+\Hypertarget{structTCB_a2987855aa531fce1fc7ca31bfc080dc3}\label{structTCB_a2987855aa531fce1fc7ca31bfc080dc3} 
+\index{TCB@{TCB}!state@{state}}
+\index{state@{state}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{state}{state}}
+{\footnotesize\ttfamily uint8\+\_\+t TCB\+::state}
+
+\Hypertarget{structTCB_a56011a0aa5a6a4a37da46823f1909e2d}\label{structTCB_a56011a0aa5a6a4a37da46823f1909e2d} 
+\index{TCB@{TCB}!task\_id@{task\_id}}
+\index{task\_id@{task\_id}!TCB@{TCB}}
+\doxysubsubsection{\texorpdfstring{task\_id}{task\_id}}
+{\footnotesize\ttfamily uint8\+\_\+t TCB\+::task\+\_\+id}
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+kernel/include/\mbox{\hyperlink{kernel__internal_8h}{kernel\+\_\+internal.\+h}}\end{DoxyCompactItemize}

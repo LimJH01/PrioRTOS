@@ -1,0 +1,146 @@
+\doxysection{bsp/clint.c File Reference}
+\hypertarget{clint_8c}{}\label{clint_8c}\index{bsp/clint.c@{bsp/clint.c}}
+{\ttfamily \#include $<$clint.\+h$>$}\newline
+{\ttfamily \#include "{}prio\+\_\+rtos.\+h"{}}\newline
+Include dependency graph for clint.\+c\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=214pt]{clint_8c__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{clint_8c_a21845935c14c7b8bc7cbd7f6605b33a3}{clint\+\_\+software\+\_\+interrupt\+\_\+init}} (void)
+\item 
+void \mbox{\hyperlink{clint_8c_ad79e2804a0e62263d0ee30ceaf5a611a}{clint\+\_\+send\+\_\+software\+\_\+interrupt}} (void)
+\item 
+void \mbox{\hyperlink{clint_8c_a003d1dcae487af007b7f6aa0e021bc1a}{clint\+\_\+clear\+\_\+software\+\_\+interrupt}} (void)
+\item 
+uint64\+\_\+t \mbox{\hyperlink{clint_8c_a245940a697c93aff0a800f1a1de5b77c}{clint\+\_\+get\+\_\+mtime}} (void)
+\item 
+void \mbox{\hyperlink{clint_8c_a1a7c75a411ccd479c094e917d74279ae}{clint\+\_\+set\+\_\+mtimecmp}} (uint64\+\_\+t compare\+\_\+value)
+\item 
+void \mbox{\hyperlink{clint_8c_a463562da45eaa7c4ed7e18475d5f5866}{clint\+\_\+timer\+\_\+init}} (void)
+\item 
+void \mbox{\hyperlink{clint_8c_a7d82c6ef7fe2d16a2aa2ecc7456badfd}{clint\+\_\+set\+\_\+next\+\_\+timer}} (void)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\Hypertarget{clint_8c_a003d1dcae487af007b7f6aa0e021bc1a}\label{clint_8c_a003d1dcae487af007b7f6aa0e021bc1a} 
+\index{clint.c@{clint.c}!clint\_clear\_software\_interrupt@{clint\_clear\_software\_interrupt}}
+\index{clint\_clear\_software\_interrupt@{clint\_clear\_software\_interrupt}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_clear\_software\_interrupt()}{clint\_clear\_software\_interrupt()}}
+{\footnotesize\ttfamily void clint\+\_\+clear\+\_\+software\+\_\+interrupt (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=308pt]{clint_8c_a003d1dcae487af007b7f6aa0e021bc1a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{clint_8c_a245940a697c93aff0a800f1a1de5b77c}\label{clint_8c_a245940a697c93aff0a800f1a1de5b77c} 
+\index{clint.c@{clint.c}!clint\_get\_mtime@{clint\_get\_mtime}}
+\index{clint\_get\_mtime@{clint\_get\_mtime}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_get\_mtime()}{clint\_get\_mtime()}}
+{\footnotesize\ttfamily uint64\+\_\+t clint\+\_\+get\+\_\+mtime (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{clint_8c_a245940a697c93aff0a800f1a1de5b77c_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{clint_8c_ad79e2804a0e62263d0ee30ceaf5a611a}\label{clint_8c_ad79e2804a0e62263d0ee30ceaf5a611a} 
+\index{clint.c@{clint.c}!clint\_send\_software\_interrupt@{clint\_send\_software\_interrupt}}
+\index{clint\_send\_software\_interrupt@{clint\_send\_software\_interrupt}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_send\_software\_interrupt()}{clint\_send\_software\_interrupt()}}
+{\footnotesize\ttfamily void clint\+\_\+send\+\_\+software\+\_\+interrupt (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{clint_8c_ad79e2804a0e62263d0ee30ceaf5a611a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{clint_8c_a1a7c75a411ccd479c094e917d74279ae}\label{clint_8c_a1a7c75a411ccd479c094e917d74279ae} 
+\index{clint.c@{clint.c}!clint\_set\_mtimecmp@{clint\_set\_mtimecmp}}
+\index{clint\_set\_mtimecmp@{clint\_set\_mtimecmp}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_set\_mtimecmp()}{clint\_set\_mtimecmp()}}
+{\footnotesize\ttfamily void clint\+\_\+set\+\_\+mtimecmp (\begin{DoxyParamCaption}\item[{uint64\+\_\+t}]{compare\+\_\+value }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{clint_8c_a1a7c75a411ccd479c094e917d74279ae_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{clint_8c_a7d82c6ef7fe2d16a2aa2ecc7456badfd}\label{clint_8c_a7d82c6ef7fe2d16a2aa2ecc7456badfd} 
+\index{clint.c@{clint.c}!clint\_set\_next\_timer@{clint\_set\_next\_timer}}
+\index{clint\_set\_next\_timer@{clint\_set\_next\_timer}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_set\_next\_timer()}{clint\_set\_next\_timer()}}
+{\footnotesize\ttfamily void clint\+\_\+set\+\_\+next\+\_\+timer (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=348pt]{clint_8c_a7d82c6ef7fe2d16a2aa2ecc7456badfd_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=310pt]{clint_8c_a7d82c6ef7fe2d16a2aa2ecc7456badfd_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{clint_8c_a21845935c14c7b8bc7cbd7f6605b33a3}\label{clint_8c_a21845935c14c7b8bc7cbd7f6605b33a3} 
+\index{clint.c@{clint.c}!clint\_software\_interrupt\_init@{clint\_software\_interrupt\_init}}
+\index{clint\_software\_interrupt\_init@{clint\_software\_interrupt\_init}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_software\_interrupt\_init()}{clint\_software\_interrupt\_init()}}
+{\footnotesize\ttfamily void clint\+\_\+software\+\_\+interrupt\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=310pt]{clint_8c_a21845935c14c7b8bc7cbd7f6605b33a3_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{clint_8c_a463562da45eaa7c4ed7e18475d5f5866}\label{clint_8c_a463562da45eaa7c4ed7e18475d5f5866} 
+\index{clint.c@{clint.c}!clint\_timer\_init@{clint\_timer\_init}}
+\index{clint\_timer\_init@{clint\_timer\_init}!clint.c@{clint.c}}
+\doxysubsubsection{\texorpdfstring{clint\_timer\_init()}{clint\_timer\_init()}}
+{\footnotesize\ttfamily void clint\+\_\+timer\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=322pt]{clint_8c_a463562da45eaa7c4ed7e18475d5f5866_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=247pt]{clint_8c_a463562da45eaa7c4ed7e18475d5f5866_icgraph}
+\end{center}
+\end{figure}
