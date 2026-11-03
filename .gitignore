@@ -7,3 +7,11 @@ build/
 !.vscode/
 !.vscode/c_cpp_properties.json
 !.vscode/settings.json
+
+# Doxygen generated documentation and call graphs
+/html/
+/latex/
+/xml/
+/man/
+/doxygen_warnings.log
+*.doxytag
