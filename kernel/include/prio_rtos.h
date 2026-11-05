@@ -59,6 +59,7 @@ void exit_critical(void);
 TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *stack, uint32_t stack_size_bytes);
 void priortos_start(void);
 void task_yield(void);
+void task_sleep_ticks(uint32_t ticks);
 void timer_tick_step(void);
 uint64_t get_tick_count(void);
 uint64_t get_tick_count_from_isr(void);

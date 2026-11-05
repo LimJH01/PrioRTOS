@@ -98,6 +98,7 @@ _Static_assert(offsetof(TCB_t, stack_base) == TCB_STACK_BASE_OFFSET,
 extern TCB_t g_tcbs[MAX_TASKS]; // 태스크 장부
 extern TCB_t *g_current_tcb; // 현재 태스크 주소
 extern uint32_t g_ready_bitmap; // 비트 0-31: 태스크 슬롯 준비 여부 플래그
+extern uint32_t g_sleep_remaining_ticks[MAX_TASKS]; // 태스크별 sleep 잔여 tick
 extern CrashDump_t g_crash_dump;
 
 //=========================================================================//

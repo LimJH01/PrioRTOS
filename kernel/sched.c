@@ -132,6 +132,8 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     g_tcbs[prio].state = TASK_STATE_READY;
     g_tcbs[prio].stack_base = stack;
     g_tcbs[prio].stack_size_bytes = stack_size_bytes;
+    // 새 슬롯이 이전 태스크의 sleep 잔여값을 물려받지 않도록 초기화한다.
+    g_sleep_remaining_ticks[prio] = 0U;
 
     // 8. 스케줄러 레디 비트맵 활성화
     g_ready_bitmap |= (1U << prio);
@@ -260,4 +262,39 @@ void task_yield(void) {
         kernel_panic("ERR_ILLEGAL_YIELD");
     }
     sched_request_reschedule();
+}
+
+/*
+ * 현재 태스크를 ticks 동안 sleep시킨다.
+ *
+ * ticks가 0이면 별도 BLOCKED 상태를 만들지 않고 yield한다. 양수이면
+ * sleep 카운터를 먼저 기록한 뒤 현재 태스크를 BLOCKED로 만들고 READY
+ * bitmap에서 제거한다. 이후 Timer ISR이 카운터를 만료시키면 해당 태스크를
+ * 다시 READY로 복귀시킨다.
+ */
+void task_sleep_ticks(uint32_t ticks) {
+    if (ticks == 0U) {
+        task_yield();
+        return;
+    }
+
+    uint32_t saved_mstatus = sched_irq_save();
+    TCB_t *self = g_current_tcb;
+    if (self == NULL || self->state != TASK_STATE_RUNNING) {
+        sched_irq_restore(saved_mstatus);
+        kernel_panic("ERR_NO_CURRENT_TASK");
+    }
+
+    if (self->held_mutex != NULL || self->task_id == IDLE_TASK_PRIORITY) {
+        kernel_panic("ERR_ILLEGAL_BLOCKING");
+    }
+
+    // task_id와 TCB 배열 인덱스가 동일하므로 포인터 차이로 슬롯을 구한다.
+    const uint32_t slot = (uint32_t)(self - g_tcbs);
+    g_sleep_remaining_ticks[slot] = ticks;
+
+    // 이 함수가 READY bit 제거와 MSIP 요청을 함께 처리한다.
+    if (!sched_block_current(saved_mstatus)) {
+        g_sleep_remaining_ticks[slot] = 0U;
+    }
 }
