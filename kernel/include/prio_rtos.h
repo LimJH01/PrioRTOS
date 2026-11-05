@@ -61,6 +61,7 @@ void priortos_start(void);
 void task_yield(void);
 void timer_tick_step(void);
 uint64_t get_tick_count(void);
+uint64_t get_tick_count_from_isr(void);
 SemaphoreResult_t semaphore_init(Semaphore_t *sem, uint32_t initial_count);
 SemaphoreResult_t semaphore_wait(Semaphore_t *sem);
 SemaphoreResult_t semaphore_signal(Semaphore_t *sem);

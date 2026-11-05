@@ -17,3 +17,11 @@ uint64_t get_tick_count(void) {
     exit_critical();
     return tick;
 }
+
+/*
+ * Timer ISR 전용 tick 조회.
+ * ISR 진입 시 MIE가 이미 0이므로 critical section을 다시 열지 않는다.
+ */
+uint64_t get_tick_count_from_isr(void) {
+    return system_tick;
+}

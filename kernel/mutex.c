@@ -221,7 +221,7 @@ void mutex_watchdog_tick(void) {
         return;
     }
 
-    const uint64_t now = get_tick_count();
+    const uint64_t now = get_tick_count_from_isr();
     const mutex_t *mutex = task->held_mutex;
     uint32_t depth = 0U;
 
