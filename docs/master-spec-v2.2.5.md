@@ -1,19 +1,27 @@
-# PrioRTOS 아키텍처 및 상세 설계 통합 명세서 (Final Master Baseline v2.2.4-Final)
+# PrioRTOS 아키텍처 및 상세 설계 명세서 (Baseline v2.2.5-Final)
 
 - **Project Name:** PrioRTOS (Deterministic Hard-RTOS for RISC-V Single-Core)
-- **Architecture / ISA:** RV32IMC (`-march=rv32imc_zicsr -mabi=ilp32`)
-- **Target Hardware / Board:** RISC-V QEMU `virt`, Hart 0 단일 코어 플랫 모델
-- **Interrupt Controller:** Standard RISC-V CLINT, 10 MHz timebase
-- **Document Status:** **Frozen (Zero-Collision Pure Direct Mapping & Bottom-Half Guarded)**
+- **Architecture / ISA:** RV32IMC Base Integer Instruction Set (`march=rv32imc_zicsr -mabi=ilp32`)
+- **Target Hardware / Board:** RISC-V QEMU virt (Hart 0 단일 코어 플랫 모델)
+- **Interrupt Controller:** Standard RISC-V CLINT (Core Local Interruptor, 10 MHz Timebase)
+- **Document Status:** Frozen (Baseline v2.2.5-Final — Pure Direct Mapping, Bottom-Half Guarded & Hardware Trap Flag Enforced)
 - **Author / Maintainer:** 임준형
 
-## Executive Summary
+## [EXECUTIVE SUMMARY] 타깃 도메인 및 아키텍처 사양
 
-PrioRTOS는 동적 메모리와 범용 네트워크 스택을 배제한 단일 코어 하드 실시간 마이크로커널이다. 목표 도메인은 차량 전장, 항공·우주 제어기 및 초정밀 산업용 드라이브다.
+### 1. 목표 타깃 도메인 (Target Domains)
+
+PrioRTOS는 동적 메모리 힙과 범용 네트워크 스택을 배제하고, ISO 26262 ASIL-D 및 DO-178C DAL-A 도메인의 제어기가 요구하는 마이크로초 단위의 실행 시간과 바운디드 지터(Bounded-Jitter)를 목표로 설계된 단일 코어 실시간 마이크로커널이다.
+
+- 자율주행 스마트 액추에이터: Steer-by-Wire, Brake-by-Wire 인버터 모터 FOC 제어 루프.
+- 항공우주 / UAM Flight Control Computer (FCC): 1 kHz~4 kHz 주기 IMU 자세 제어(EKF), 모터 믹서 연산.
+- 산업용 드라이브: 지터 10 µs 이하를 요구하는 서보 드라이브 및 제어 루프.
+
+### 2. 핵심 설계 특성
 
 핵심 원칙은 다음과 같다.
 
-- 런타임 `malloc`/`free`를 금지하고 모든 커널 상태와 스택을 정적으로 배치한다.
+- **정적 메모리 할당 (Zero Dynamic Heap):** 런타임 힙 할당을 배제하고 컴파일 타임에 모든 메모리를 정적으로 배치한다 (INV-MEM-001).
 - `g_ready_bitmap`은 `task_id == base_priority == bit index` 직접 매핑을 사용한다.
 - LSB De Bruijn 선택기는 Guard Bit 31을 연산 시점에 합성하여 빈 Ready 큐에서도 분기 없이 IDLE을 선택한다.
 - Mutex 보유 태스크는 Top-Half와 Bottom-Half 모두에서 선점되지 않는다.
@@ -21,7 +29,17 @@ PrioRTOS는 동적 메모리와 범용 네트워크 스택을 배제한 단일 �
 - Mutex의 유효 priority shadowing과 LIFO 복원은 최대 4단계로 제한한다.
 - Timer ISR은 직접 문맥 전환하지 않고 MSIP Bottom-Half에 위임한다.
 - Pending MSIP는 Bottom-Half에서 Mutex 보유 여부를 다시 검사한다.
-- CrashDump를 제외한 순수 스케줄링 정적 RAM은 2,976B이며, CrashDump 24B를 포함한 전체 정적 RAM은 3,000B다.
+- `g_in_trap_context`는 C 트랩 핸들러 실행 중임을 표시하여 `mstatus.MIE == 0`과 태스크 임계구역을 구분한다.
+- **트랩 컨텍스트 검증 플래그(`g_in_trap_context`):** `mstatus.MIE == 0` 상태 외에 트랩 진입/복귀 시 갱신되는 전역 플래그를 두어 태스크 크리티컬 섹션과 실제 ISR 실행 상태를 분리 검증한다 (INV-CTX-005).
+- **메모리 풋프린트:** 커널 바이너리(`.text`) 4 KiB 이내, 순수 커널 스칼라 상태 변수 36 Bytes, 제어 구조체 및 배열 총합 920 Bytes, 시스템 정적 RAM 소모 총합 3,004 Bytes(32개 TCB 768B, 슬립 배열 128B, CrashDump 24B, 스칼라 36B, IDLE 스택 1024B, 시스템 스택 1024B 전체 포함).
+
+### 3. v2.1 대비 변경 사항
+
+- **간접 매핑 테이블(`g_prio_to_slot[32]`) 제거:** 우선순위 간접 역참조 배열을 제거하고, `base_priority == task_id == Bit Index`의 1:1 직접 매핑 체계를 적용한다.
+- **Bottom-Half 비선점 IPCP 가드 및 LIFO Priority Shadowing:** 뮤텍스 획득 직전에 펜딩된 지연 MSIP가 `exit_critical()` 직후 처리되더라도 Bottom-Half(`trap_handler` Cause 3)에서 `held_mutex != NULL`을 확인하여 문맥 교환을 취소한다.
+- **Guard Bit 주입(Sentinel Bit Masking):** `g_ready_bitmap`은 대기 중인(`TASK_STATE_READY`) 태스크만 추적하며, `safe_bm = task_bitmap | (1U << 31)`으로 IDLE 폴백을 처리한다.
+- **단일 트랩 에필로그 문맥 교환:** `prio_context_switch`를 폐기하고 `trap_entry` 단일 루틴에서 문맥 저장·복원과 시스템 스택 전환을 수행한다.
+- **트랩 컨텍스트 검증 플래그 통합:** `g_in_trap_context`를 BSS에 상주시키고 API 진입점에서 컨텍스트 유효성을 검증한다.
 
 ## Part I. Software Requirements Specification
 
@@ -64,7 +82,7 @@ PrioRTOS는 동적 메모리와 범용 네트워크 스택을 배제한 단일 �
 | `INV-ALG-002` | Bounded O(1) | De Bruijn 선택은 분기 0개, sleep 순회 `N <= 31`, Mutex 순회 `N <= 4` | 역어셈블리·루프 상한 검사 | WCET 실패 |
 | `INV-SCH-003` | Direct Mapping & Non-Preemption | Ready bit `p`는 `task_id == base_priority == p`; Mutex 보유 태스크는 절대 Ready 전환하지 않음 | 모든 선점 경로 테스트 | 슬롯 충돌 불가능 |
 | `INV-INT-004` | Single Trap Pipeline | Timer ISR은 직접 switch하지 않고 MSIP DPC를 요청 | call graph 검사 | 시스템 스택 오염 |
-| `INV-CTX-005` | Context Safety | ISR에서 task 전용 API와 `enter/exit_critical` 금지; ISR API는 trap context를 검증 | call graph, CSR 검사 | `ERR_ILLEGAL_ISR_STATE` |
+| `INV-CTX-005` | Context Safety & Trap Flag | ISR에서 task 전용 API와 `enter/exit_critical` 금지; ISR API는 `mstatus.MIE == 0 && g_in_trap_context == 1`을 검증하고 task API는 flag가 0인지 검증 | call graph, CSR·flag 검사 | `ERR_ILLEGAL_ISR_STATE` |
 | `INV-CAP-006` | Fixed 32 Slots | `OS_MAX_TASKS == 32`, ID 31은 Guard/IDLE | `_Static_assert` | 중복 등록 패닉 |
 | `INV-LFC-007` | No Runtime Task Deletion | 부팅 후 생성·삭제·종료 금지 | API 및 return guard 검사 | `ERR_TASK_RETURNED` |
 | `INV-STK-008` | Dual Stack & Canary | 16B canary, `stack_base + 144`, 1,024B system stack | canary/boundary 검사 | `ERR_STACK_OVERFLOW` |
@@ -107,6 +125,21 @@ Mutex 보유 태스크는 Timer Top-Half에서 MSIP 요청을 받지 않으며, 
 2. 카나리를 검사한다.
 3. `held_mutex != NULL`이면 switch 없이 현재 태스크로 복귀한다.
 4. 최외곽 `mutex_unlock()`에서 Ready bitmap을 재평가하고 필요한 경우 MSIP를 재요청한다.
+
+#### 3.4 Trap Context Flag
+
+RISC-V M-mode에는 ARM의 실행 모드 비트처럼 현재 코드가 태스크 본문인지 ISR인지 직접 알려주는 일반적인 소프트웨어 판별 비트가 없다. 트랩 진입 직후에는 하드웨어가 `mstatus.MIE`를 0으로 만들지만, 태스크가 `enter_critical()`을 실행한 동안에도 같은 값이므로 `MIE`만으로는 두 상태를 구분할 수 없다.
+
+따라서 단일 Hart의 단일 `trap_entry -> trap_handler` 파이프라인에 대해 다음의 소프트웨어 표지를 둔다.
+
+- `volatile uint32_t g_in_trap_context`는 `.bss`에 배치하고 초기값은 0이다.
+- `trap_handler()`의 첫 명령군에서 1로 설정한다.
+- Cause 3/7의 정상 반환 직전에 0으로 복원한다. `unhandled_trap_freeze()`와 `kernel_panic()`처럼 복귀하지 않는 경로는 별도 clear를 요구하지 않는다.
+- ISR 전용 API는 `mstatus.MIE == 0 && g_in_trap_context == 1`을 모두 만족해야 한다.
+- 태스크 전용 API는 `g_in_trap_context == 0`을 요구한다. 이 검사는 MIE를 다시 켜는 동작이 아니며, 태스크의 임계구역 상태와 독립적이다.
+- 이 플래그는 하드웨어 트랩 원인 자체를 인증하지 않는다. `mtvec`가 다른 진입점으로 호출되거나 메모리 손상이 발생하는 경우까지 방어하는 보안 경계가 아니며, 정해진 trap pipeline의 문맥 계약을 검증하는 진단·안전 장치다.
+
+Bottom-Half의 Mutex 보유 조기 복귀 경로를 포함하여 모든 복귀 경로는 flag를 0으로 만들고, flag가 1인 동안에는 task-only API를 호출하지 않는다.
 
 ### 4. IPCP Mutex
 
@@ -171,6 +204,8 @@ if (curr != NULL || nest_cnt >= OS_MAX_MUTEX_NESTING) {
 | `uart_putc` | Task/Panic | 최대 100,000회 polling 후 drop |
 | `uart_puts` | Task/Panic | 최대 256바이트 |
 | `semaphore_signal_from_isr` | ISR | `MIE == 0` 및 trap context 검증 |
+
+`assert_isr_context()`는 `((mstatus & 0x8U) == 0U) && (g_in_trap_context == 1U)`를 검사하고, `assert_task_context()`는 `g_in_trap_context == 0U`를 검사한다. `g_in_trap_context`는 인터럽트 enable 상태를 제어하지 않으며, 단지 현재 C 코드 실행이 트랩 파이프라인 안에 있음을 나타낸다.
 
 ## Part II. Low-Level Design
 
@@ -249,6 +284,23 @@ _Static_assert(sizeof(TCB_t) == 24U, "TCB_t size mismatch");
 _Static_assert(sizeof(Semaphore_t) == 8U, "Semaphore_t size mismatch");
 _Static_assert(sizeof(CrashDump_t) == 24U, "CrashDump_t size mismatch");
 _Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be 32");
+
+/* 0: task context, 1: trap_handler() 실행 중 */
+extern volatile uint32_t g_in_trap_context;
+
+static inline void assert_isr_context(void) {
+    uint32_t mstatus_value;
+    __asm__ volatile("csrr %0, mstatus" : "=r"(mstatus_value));
+    if ((mstatus_value & 0x8U) != 0U || g_in_trap_context != 1U) {
+        kernel_panic("ERR_ILLEGAL_ISR_STATE");
+    }
+}
+
+static inline void assert_task_context(void) {
+    if (g_in_trap_context != 0U) {
+        kernel_panic("ERR_ILLEGAL_ISR_STATE");
+    }
+}
 ```
 
 ### 11. Context Frame
@@ -261,13 +313,13 @@ _Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be 32");
 |---|---:|
 | `g_tcbs[32]` | 768B |
 | `g_sleep_remaining_ticks[32]` | 128B |
-| 스칼라 상태 | 32B |
+| 스칼라 상태 (`g_in_trap_context` 포함) | 36B |
 | CrashDump | 24B |
-| 순수 제어 영역 합계 | 952B |
+| 순수 제어 영역 합계 | 956B |
 | `idle_stack` | 1,024B |
 | `kernel_sys_stack` | 1,024B |
-| CrashDump 제외 정적 RAM | 2,976B |
-| CrashDump 포함 정적 RAM | 3,000B |
+| CrashDump 제외 정적 RAM | 2,980B |
+| CrashDump 포함 정적 RAM | 3,004B |
 
 ### 13. Boot Sequence
 
@@ -281,6 +333,8 @@ _Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be 32");
 8. `mscratch = stack_base + 144`
 9. `prio_context_first_switch()`와 `mret`으로 최초 태스크 진입
 
+`.bss` 초기화 이후 `g_in_trap_context`는 0이어야 한다. `trap_handler()`는 Cause 판별 전에 flag를 1로 만들고, Cause 3/7의 모든 반환 경로에서 0으로 되돌린다.
+
 ### 14. Acceptance Criteria
 
 - `sched_highest_priority_slot`: 정적 명령어 10개 이하, 조건 분기 0개
@@ -288,9 +342,11 @@ _Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be 32");
 - Mutex 중첩 검사: 최대 4회
 - 정상 Timer 10,000 tick 누적 오차: 0 cycle
 - 강제 `3 * TIMER_INTERVAL` 지연: 1 tick만 처리 후 `now + TIMER_INTERVAL` 재동기화
+- Task 문맥에서 `g_in_trap_context == 0`, trap C handler 문맥에서 `g_in_trap_context == 1`
+- Task critical section(`MIE == 0`, flag 0)과 ISR(`MIE == 0`, flag 1)을 구별하는 결함 주입 테스트 통과
 - Kernel `.text`: 4 KiB 이하
-- CrashDump 제외 정적 RAM: 2,976B
-- CrashDump 포함 정적 RAM: 3,000B
+- CrashDump 제외 정적 RAM: 2,980B
+- CrashDump 포함 정적 RAM: 3,004B
 - `.heap`: 0B
 
 ### 15. Traceability IDs
@@ -315,3 +371,4 @@ _Static_assert(OS_MAX_TASKS == 32U, "OS_MAX_TASKS must be 32");
 | v2.2.3-d | system stack, canary, `mscratch + 144` 명시 |
 | v2.2.4 | BSS와 정적 RAM 산술 정리 |
 | v2.2.4-Final | Direct mapping, Mutex non-preemption, Bottom-Half pending MSIP guard, bounded Mutex nesting, timer overrun policy, ISR API separation, 최종 메모리 예산 확정 |
+| v2.2.5-Final | `g_in_trap_context` 도입; `MIE == 0`만으로 구분할 수 없는 task critical section과 ISR을 분리 검증; `assert_isr_context()`/`assert_task_context()` 계약, trap 진입·복귀 토글, BSS 및 RAM 예산 4B 반영 |
