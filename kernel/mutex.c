@@ -152,9 +152,12 @@ MutexResult_t mutex_lock(mutex_t *mutex) {
         kernel_panic("ERR_IPCP_NESTING");
     }
 
-    /* 숫자가 작을수록 높은 우선순위다. 더 높은 태스크가 낮은 ceiling을
-     * 가진 Mutex를 획득하면 priority를 낮추는 상황이므로 명세 위반이다. */
-    if (task->priority < mutex->ceiling_prio) {
+    /*
+     * Mutex 획득 자격은 외부 Mutex에 의해 변할 수 없는 기본 우선순위로
+     * 판정한다. 숫자가 작을수록 높은 우선순위이므로, 기본 우선순위가
+     * ceiling보다 높으면 IPCP ceiling 규칙을 위반한 것이다.
+     */
+    if (task->base_priority < mutex->ceiling_prio) {
         kernel_panic("ERR_MUTEX_CEILING");
     }
 
@@ -163,11 +166,25 @@ MutexResult_t mutex_lock(mutex_t *mutex) {
         kernel_panic("ERR_MUTEX_BUDGET_UNCONFIGURED");
     }
 
+    /*
+     * 한 태스크가 여러 Mutex를 중첩 보유할 수 있다. held_mutex는 가장
+     * 최근에 획득한 Mutex를 가리키고 prev_mutex가 이전 획득 경로를
+     * 연결하므로, unlock은 LIFO 순서로 수행된다.
+     */
     mutex->saved_prio = task->priority;
     mutex->prev_mutex = task->held_mutex;
     mutex->locked = 1U;
     task->held_mutex = mutex;
-    task->priority = mutex->ceiling_prio;
+
+    /*
+     * 현재 유효 priority보다 더 높은 ceiling만 적용한다. 이미 바깥
+     * Mutex가 더 높은 ceiling을 적용했다면 그 priority를 완화하지 않는다.
+     * LIFO unlock 시 saved_prio를 복원하면 직전 priority 궤적이 역순으로
+     * 복구된다.
+     */
+    if (mutex->ceiling_prio < task->priority) {
+        task->priority = mutex->ceiling_prio;
+    }
     watchdog->owner = task;
     watchdog->acquired_tick = get_tick_count();
 
