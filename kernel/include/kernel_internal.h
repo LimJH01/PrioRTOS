@@ -106,6 +106,7 @@ extern CrashDump_t g_crash_dump;
 /* 어셈블리 및 커널 내부 엔진 함수*/
 extern void prio_context_first_switch(TCB_t *next);
 __attribute__((noreturn)) void stack_overflow_panic(void);
+__attribute__((noreturn)) void unhandled_trap(void);
 
 //sched.c 내부 함수
 void sched_schedule(void);

@@ -68,7 +68,7 @@ PrioRTOS는 동적 메모리 힙과 범용 네트워크 스택을 배제하고, 
     - **하드웨어 진입점 및 소프트웨어 트랩 디스패치 (`trap_handler` 내부 mcause 분기):**
         - Cause 7 (`0x80000007U`, MTIP): Top-Half 틱 디스패처로 분기 (`timer_tick_step()`).
         - Cause 3 (`0x80000003U`, MSIP): Bottom-Half 문맥 교환기(DPC)로 분기.
-        - 미인가 트랩 및 동기 예외: `unhandled_trap_freeze()`로 분기하여 `g_crash_dump` 기록 후 `wfi` 무한 루프 진입.
+        - 미인가 트랩 및 동기 예외: `unhandled_trap()`로 분기하여 `g_crash_dump` 기록 후 `wfi` 무한 루프 진입.
 
 ### 2. 시스템 아키텍처 불변 원칙 (System Invariants)
 
@@ -184,7 +184,7 @@ PrioRTOS는 동적 메모리 힙과 범용 네트워크 스택을 배제하고, 
     - **Step 4 (커널 시동):** `priortos_start()`에서 슬롯 31에 `idle_task` 등록 확인, `sched_select_next_task()`로 최고 우선순위 태스크를 선택하여 `TASK_STATE_RUNNING` 전환 및 `g_current_tcb` 바인딩.
     - **Step 5 (최초 문맥 복원):** `(uint32_t)(g_current_tcb->stack_base + 144U)`를 `mscratch`에 기록하고 `prio_context_first_switch(g_current_tcb)`를 호출하여 레지스터 및 CSR(`mstatus=0x00001880U`, `mepc`) 복원 후 `mret` 실행.
 - **예외 처리 및 패닉 정책:**
-    - **미인가 트랩 (Cause 3, 7 이외):** `unhandled_trap_freeze()`에서 `g_crash_dump`에 mcause, mepc, mtval, sp, task_id를 기록하고 에러 문자열을 출력한 후 `wfi` 루프에 머문다.
+    - **미인가 트랩 (Cause 3, 7 이외):** `unhandled_trap()`에서 `g_crash_dump`에 mcause, mepc, mtval, sp, task_id를 기록하고 에러 문자열을 출력한 후 `wfi` 루프에 머문다.
     - **명시적 커널 패닉 (`kernel_panic`):** `csrci mstatus, 8`로 전역 인터럽트를 차단하고 `g_crash_dump` 기록 및 UART 문자열 출력 후 `wfi` 루프에 머문다.
 
 #### 3.4 태스크 제어 서브시스템 (Task Control Subsystem)
@@ -380,7 +380,7 @@ PrioRTOS/
 | --- | --- | --- | --- |
 | **[구현 완료]** | `void trap_init(void)` | 입력: 없음 / 출력: 없음 | `trap_entry` 주소를 Direct Mode로 `mtvec`에 기록. |
 | **[구현 완료]** | `void trap_handler(void)` | 입력: 없음 / 출력: 없음 | `g_in_trap_context = 1U;` 설정. `mcause` 확인. Cause 7: `timer_tick_step()` 호출. Cause 3: `clint_clear_software_interrupt()` $\to$ 카나리 검증 $\to$ `held_mutex != NULL` 시 조기 복귀 $\to$ 실행 중인 태스크를 Ready 큐로 전이 $\to$ `sched_select_next_task()` 호출 $\to$ 종료 전 `g_in_trap_context = 0U;` 클리어. |
-| **[구현 완료]** | `void unhandled_trap_freeze(void)` | 입력: 없음 / 출력: 없음 (noreturn) | 미인가 예외 발생 시 `g_crash_dump` 기록 후 UART 메시지 출력 및 `wfi` 무한 루프 진입. |
+| **[구현 완료]** | `void unhandled_trap(void)` | 입력: 없음 / 출력: 없음 (noreturn) | 미인가 예외 발생 시 `g_crash_dump` 기록 후 UART 메시지 출력 및 `wfi` 무한 루프 진입. |
 
 #### 5.4 `kernel/sched.c`
 
@@ -716,7 +716,7 @@ extern TCB_t *g_current_tcb;
 extern volatile uint32_t g_ready_bitmap;
 void timer_tick_step(void);
 TCB_t* sched_select_next_task(void);
-__attribute__((noreturn)) void unhandled_trap_freeze(void);
+__attribute__((noreturn)) void unhandled_trap(void);
 
 volatile uint32_t g_in_trap_context = 0U;
 
@@ -758,7 +758,7 @@ void trap_handler(void){
         return;
     }
 
-    unhandled_trap_freeze();
+    unhandled_trap();
 }
 ```
 
