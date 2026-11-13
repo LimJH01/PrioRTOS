@@ -236,6 +236,8 @@ MutexResult_t mutex_unlock(mutex_t *mutex) {
 }
 
 void mutex_watchdog_tick(void) {
+    assert_isr_context();
+
     TCB_t *task = g_current_tcb;
     if (task == NULL || task->state != TASK_STATE_RUNNING ||
         task->held_mutex == NULL) {

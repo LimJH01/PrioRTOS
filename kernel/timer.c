@@ -44,6 +44,8 @@ static void wake_expired_tasks(void) {
  * sched_schedule()이 최종적으로 판단한다.
  */
 void timer_tick_step(void) {
+    assert_isr_context();
+
     ++system_tick;
     mutex_watchdog_tick();
     wake_expired_tasks();
@@ -66,6 +68,8 @@ uint64_t get_tick_count(void) {
  * ISR 진입 시 MIE가 이미 0이므로 critical section을 다시 열지 않는다.
  */
 uint64_t get_tick_count_from_isr(void) {
+    assert_isr_context();
+
     /* 호출자는 Timer ISR 문맥에 있어야 하며, 진입 시 MIE가 이미 0이다. */
     return system_tick;
 }

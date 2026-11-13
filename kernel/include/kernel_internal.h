@@ -109,6 +109,16 @@ static inline void assert_task_context(void) {
     }
 }
 
+/* ISR 전용 커널 API가 실제 Trap 문맥에서 호출되는지 확인한다. */
+static inline void assert_isr_context(void) {
+    uint32_t mstatus_value;
+
+    asm volatile("csrr %0, mstatus" : "=r"(mstatus_value));
+    if (g_in_trap_context == 0U || (mstatus_value & (1U << 3)) != 0U) {
+        kernel_panic("ERR_ILLEGAL_ISR_STATE");
+    }
+}
+
 //=========================================================================//
 //=========================================================================//
 /* 어셈블리 및 커널 내부 엔진 함수*/
