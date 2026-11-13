@@ -73,6 +73,9 @@ TaskCreateResult_t task_create(uint32_t prio, void (*task_func)(void), uint8_t *
     if (task_func == 0 || stack == 0){
         return TASK_CREATE_ERR_NULL_PTR;
     }
+    if (((uintptr_t)stack & 0x3U) != 0U) {
+        return TASK_CREATE_ERR_STACK_MISALIGNED;
+    }
     if (stack_size_bytes < STACK_GUARD_SIZE + sizeof(TaskContext_t)){
         return TASK_CREATE_ERR_STACK_TOO_SMALL;
     }

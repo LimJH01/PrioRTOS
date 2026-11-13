@@ -3,6 +3,7 @@
 #include "prio_rtos.h"
 #include "kernel_internal.h"
 
+volatile uint32_t g_in_trap_context = 0U;
 extern void trap_entry(void);
 
 void trap_init(void){
@@ -30,26 +31,36 @@ __attribute__((noreturn)) void unhandled_trap(void) {
         asm volatile("wfi");
     }
 }
-
 // mepc 확인
 // mret 확인
 // __attribute__((interrupt("machine")))
-
-void trap_handler(){
-    
-    // macuse, trap이 어떤 사유로 발생했는지 들어감
+void trap_handler(void) {
     uint32_t mcause;
     asm volatile("csrr %0, mcause" : "=r"(mcause));
 
+    g_in_trap_context = 1U;
+
     if (mcause == 0x80000003U) {
-        // Machine Software Interrupt (MSIP), bottom half (여기서 직접 스케줄링)
+        // Machine Software Interrupt (MSIP) Bottom-Half.
         clint_clear_software_interrupt();
-        sched_schedule();
+
+        if (g_current_tcb == NULL) {
+            kernel_panic("ERR_NO_CURRENT_TASK");
+        }
+
+        // Mutex 보유 중이 아닐 때만 스케줄러 실행 (조기 return 불필요)
+        if (g_current_tcb->held_mutex == NULL) {
+            sched_schedule();
+        }
     } else if (mcause == 0x80000007U) {
-        // Machine Timer Interrupt (MTI), top half (여기서 타이머를 갱신, 틱 처리, 직접 스케줄링 X)
+        // Machine Timer Interrupt (MTI) Top-Half.
         clint_set_next_timer();
         timer_tick_step();
     } else {
+        // 알 수 없는 트랩은 여기서만 처리
         unhandled_trap();
     }
+
+    // 모든 정상 트랩 경로가 단 한 곳에서 플래그를 복구하고 종료
+    g_in_trap_context = 0U;
 }
