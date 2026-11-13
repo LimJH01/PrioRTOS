@@ -20,6 +20,8 @@ static uint32_t critical_saved_mstatus;
 #define MSTATUS_MIE (1U << 3)
 
 void enter_critical(void) {
+    assert_task_context();
+
     uint32_t current_mstatus;
 
     /*
@@ -59,6 +61,8 @@ void enter_critical(void) {
 }
 
 void exit_critical(void) {
+    assert_task_context();
+
     /* enter 없이 exit하면 보호 깊이 장부가 깨진 것이므로 패닉 처리한다. */
     if (critical_nesting == 0U) {
         kernel_panic("ERR_CRITICAL_UNDERFLOW");

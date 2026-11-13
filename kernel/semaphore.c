@@ -16,6 +16,8 @@ SemaphoreResult_t semaphore_init(Semaphore_t *sem, uint32_t initial_count) {
 
 // 자원이 있으면 하나를 획득하고, 없으면 현재 태스크를 대기 상태로 만든다.
 SemaphoreResult_t semaphore_wait(Semaphore_t *sem) {
+    assert_task_context();
+
     if (sem == 0) {
         return SEMAPHORE_ERR_INVALID_ARGUMENT;
     }
@@ -56,6 +58,8 @@ SemaphoreResult_t semaphore_wait(Semaphore_t *sem) {
 
 // 세마포어를 반환하고, 대기자가 있으면 우선순위가 가장 높은 태스크를 깨운다.
 SemaphoreResult_t semaphore_signal(Semaphore_t *sem) {
+    assert_task_context();
+
     if (sem == 0) {
         return SEMAPHORE_ERR_INVALID_ARGUMENT;
     }

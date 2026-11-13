@@ -51,6 +51,8 @@ void timer_tick_step(void) {
 }
 
 uint64_t get_tick_count(void) {
+    assert_task_context();
+
     uint64_t tick;
 
     enter_critical();

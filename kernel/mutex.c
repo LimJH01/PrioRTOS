@@ -132,6 +132,8 @@ MutexResult_t mutex_set_execution_budget(mutex_t *mutex, uint32_t budget_ticks) 
 }
 
 MutexResult_t mutex_lock(mutex_t *mutex) {
+    assert_task_context();
+
     if (mutex == NULL) {
         return MUTEX_ERR_INVALID_ARGUMENT;
     }
@@ -193,6 +195,8 @@ MutexResult_t mutex_lock(mutex_t *mutex) {
 }
 
 MutexResult_t mutex_unlock(mutex_t *mutex) {
+    assert_task_context();
+
     if (mutex == NULL) {
         return MUTEX_ERR_INVALID_ARGUMENT;
     }

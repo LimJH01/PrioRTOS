@@ -259,6 +259,8 @@ bool sched_wake_task(uint32_t slot) {
 }
 
 void task_yield(void) {
+    assert_task_context();
+
     if (g_current_tcb == NULL ||
         g_current_tcb->task_id == IDLE_TASK_PRIORITY ||
         g_current_tcb->held_mutex != NULL) {
@@ -276,6 +278,8 @@ void task_yield(void) {
  * 다시 READY로 복귀시킨다.
  */
 void task_sleep_ticks(uint32_t ticks) {
+    assert_task_context();
+
     if (ticks == 0U) {
         task_yield();
         return;

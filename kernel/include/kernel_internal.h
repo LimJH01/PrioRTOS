@@ -102,6 +102,13 @@ extern uint32_t g_sleep_remaining_ticks[MAX_TASKS]; // 태스크별 sleep 잔여
 extern CrashDump_t g_crash_dump;
 extern volatile uint32_t g_in_trap_context;
 
+/* Task 전용 커널 API가 ISR에서 호출되지 않았는지 확인한다. */
+static inline void assert_task_context(void) {
+    if (g_in_trap_context != 0U) {
+        kernel_panic("ERR_ILLEGAL_ISR_STATE");
+    }
+}
+
 //=========================================================================//
 //=========================================================================//
 /* 어셈블리 및 커널 내부 엔진 함수*/
